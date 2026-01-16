@@ -2,6 +2,15 @@
 ## [Unreleased]
 
 ### ⚙️ Miscellaneous
+- Fixed target ([9a43c03](https://github.com/sguzman/pulsewire/commit/9a43c03bf8e15ff2f6c7d69569dbb1d753202ddf))
+- Remove windows ([8e21afd](https://github.com/sguzman/pulsewire/commit/8e21afd0f11eb3561792de5af53aefec1637fdb3))
+- More test ([648291a](https://github.com/sguzman/pulsewire/commit/648291a72275f809ff3f8b960bb39561c1f5b02f))
+- Fixed wrong target dir ([56f8c51](https://github.com/sguzman/pulsewire/commit/56f8c510951266763e1c789dbcf75903acd68ecd))
+
+### 🚀 Features
+- Readme ([4e72fa8](https://github.com/sguzman/pulsewire/commit/4e72fa8546b524d7ca5c5b27ad0536dec718ad93))## [0.2.1] - 2026-01-16
+
+### ⚙️ Miscellaneous
 - Test ([ada591b](https://github.com/sguzman/pulsewire/commit/ada591bdbb72da3ae9ce1442163e9dd1cfe9aac3))
 - Fix justfile ([fdf6978](https://github.com/sguzman/pulsewire/commit/fdf69785633792888af8efab6eb602a2adfcb807))
 - Fix test ([2af91de](https://github.com/sguzman/pulsewire/commit/2af91de9ab7c2f6031936da5d7e2a6081e7a4f5b))## [0.2.0] - 2026-01-16
