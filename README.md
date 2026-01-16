@@ -76,6 +76,16 @@ Print what would happen without modifying the filesystem:
 fathrs --config links.toml --dry-run
 ```
 
+### Status report
+
+Ensure every destination is where you expect it before touching the filesystem:
+
+```text
+fathrs --config links.toml --status
+```
+
+Each entry logs `info` when the symlink already exists and `warn` when it does not, then logs again with `info` if the parent directory is writable or `warn` if it likely requires sudo to update. This flag does not create or remove anything.
+
 ## Logging
 
 `fathrs` uses `tracing` for structured logs. You can control verbosity with `RUST_LOG`.

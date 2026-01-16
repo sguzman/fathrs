@@ -1,8 +1,13 @@
 use std::collections::BTreeMap;
-use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 use std::path::{
   Path,
   PathBuf
+};
+use std::{
+  fs,
+  io
 };
 
 use anyhow::{
@@ -12,6 +17,8 @@ use anyhow::{
   bail
 };
 use clap::Parser;
+#[cfg(unix)]
+use libc;
 use serde::Deserialize;
 use tracing::{
   debug,
@@ -58,7 +65,12 @@ struct Args {
   /// Print what would happen, but do
   /// not modify filesystem
   #[arg(long)]
-  dry_run: bool
+  dry_run: bool,
+
+  /// Verify each link’s status instead
+  /// of creating links
+  #[arg(long)]
+  status: bool
 }
 
 // links.toml format:
@@ -171,6 +183,7 @@ fn run(args: Args) -> Result<()> {
         Path::new(dst_str),
         args.force,
         args.dry_run,
+        args.status,
         section
       )
       .with_context(|| {
@@ -189,7 +202,7 @@ fn run(args: Args) -> Result<()> {
 #[instrument(
     level="trace",
     skip_all,
-    fields(section=%section, force=force, dry_run=dry_run, src=%src.display(), dst=%dst.display())
+    fields(section=%section, force=force, dry_run=dry_run, status=status, src=%src.display(), dst=%dst.display())
 )]
 fn link_one(
   base_dir: &Path,
@@ -197,6 +210,7 @@ fn link_one(
   dst: &Path,
   force: bool,
   dry_run: bool,
+  status: bool,
   section: &str
 ) -> Result<()> {
   let src_abs =
@@ -228,6 +242,12 @@ fn link_one(
     src_is_symlink,
     "source file type"
   );
+
+  if status {
+    log_symlink_status(&dst_abs)?;
+    log_sudo_requirement(&dst_abs);
+    return Ok(());
+  }
 
   // Ensure parent directories exist for
   // the destination path
@@ -430,6 +450,104 @@ fn create_symlink(
   Err(anyhow!(
     "unsupported platform for symlinks"
   ))
+}
+
+fn log_symlink_status(
+  dst_abs: &Path
+) -> Result<()> {
+  match fs::symlink_metadata(dst_abs) {
+    | Ok(meta) => {
+      if meta.file_type().is_symlink() {
+        info!(dst=%dst_abs.display(), "symlink already exists");
+      } else {
+        warn!(dst=%dst_abs.display(), "destination exists but is not a symlink");
+      }
+    }
+    | Err(e)
+      if e.kind()
+        == io::ErrorKind::NotFound =>
+    {
+      warn!(dst=%dst_abs.display(), "symlink missing");
+    }
+    | Err(e) => {
+      warn!(dst=%dst_abs.display(), error=?e, "failed to stat destination");
+    }
+  }
+  Ok(())
+}
+
+fn log_sudo_requirement(
+  dst_abs: &Path
+) {
+  if requires_sudo_for_path(dst_abs) {
+    warn!(dst=%dst_abs.display(), "creating this link may require sudo");
+  } else {
+    info!(dst=%dst_abs.display(), "creating this link should not require sudo");
+  }
+}
+
+#[cfg(unix)]
+fn requires_sudo_for_path(
+  path: &Path
+) -> bool {
+  let parent = path
+    .parent()
+    .unwrap_or_else(|| Path::new("/"));
+  let parent =
+    if parent.as_os_str().is_empty() {
+      Path::new("/").to_path_buf()
+    } else {
+      parent.to_path_buf()
+    };
+
+  let mut cursor = parent;
+  loop {
+    if cursor.exists() {
+      break;
+    }
+    if let Some(p) = cursor.parent() {
+      cursor = p.to_path_buf();
+      continue;
+    }
+    break;
+  }
+
+  if cursor.as_os_str().is_empty() {
+    cursor =
+      Path::new("/").to_path_buf();
+  }
+
+  let meta = match fs::metadata(&cursor)
+  {
+    | Ok(m) => m,
+    | Err(_) => return true
+  };
+
+  let mode = meta.mode();
+  let owner_uid = meta.uid();
+  let owner_gid = meta.gid();
+  let current_uid =
+    unsafe { libc::geteuid() } as u32;
+  let current_gid =
+    unsafe { libc::getegid() } as u32;
+
+  let writable =
+    if owner_uid == current_uid {
+      mode & 0o200 != 0
+    } else if owner_gid == current_gid {
+      mode & 0o020 != 0
+    } else {
+      mode & 0o002 != 0
+    };
+
+  !writable
+}
+
+#[cfg(not(unix))]
+fn requires_sudo_for_path(
+  _path: &Path
+) -> bool {
+  false
 }
 
 /// Normalize read_link output to an

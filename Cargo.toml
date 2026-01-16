@@ -16,3 +16,4 @@ tracing = "0.1.44"
 tracing-subscriber = { features = [
   "env-filter",
 ], version = "0.3.22" }
+libc = "0.2"
