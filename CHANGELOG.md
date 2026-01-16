@@ -2,6 +2,9 @@
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- **(lychee)**: Ignore github links ([d2e9344](https://github.com/sguzman/fathers/commit/d2e9344c686edd7835b960e6c488894b522a7c6b))## [1.1.0] - 2026-01-16
+
+### 🐛 Bug Fixes
 - Fixed wrong project name ([812b13c](https://github.com/sguzman/fathers/commit/812b13c1e3d55cdcb8c63a764164e29d57c573bc))## [0.3.1] - 2026-01-16
 
 ### ⚙️ Miscellaneous
