@@ -5,8 +5,6 @@ use std::path::{
 use std::process::Command;
 
 fn repo_root() -> PathBuf {
-  // Cargo sets this at compile time for
-  // tests.
   PathBuf::from(env!(
     "CARGO_MANIFEST_DIR"
   ))
@@ -82,7 +80,6 @@ fn assert_symlink_points_to(
 #[test]
 fn links_toml_example_test1_creates_expected_symlinks()
  {
-  // Arrange
   let ex = example_dir();
 
   let links = ex.join("links.toml");
@@ -92,40 +89,33 @@ fn links_toml_example_test1_creates_expected_symlinks()
     links.display()
   );
 
-  let local_source =
-    ex.join("local-source");
-  let local_target =
-    ex.join("local-target");
+  // Match your actual example layout
+  let link_source =
+    ex.join("link-source");
+  let link_target =
+    ex.join("link-target");
 
   // Clean target dir so the test is
-  // repeatable. (We only remove the
-  // example's target directory.)
+  // repeatable
   let _ = std::fs::remove_dir_all(
-    &local_target
+    &link_target
   );
-  std::fs::create_dir_all(
-    &local_target
-  )
-  .unwrap();
+  std::fs::create_dir_all(&link_target)
+    .unwrap();
 
-  // Act: run the built binary via
-  // Cargo's integration test helper env
-  // var. Cargo sets
-  // CARGO_BIN_EXE_<name> for each
-  // binary target.
   let exe =
     env!("CARGO_BIN_EXE_fathrs");
 
   let output = Command::new(exe)
-        .current_dir(&repo_root()) // IMPORTANT: run from repo root like you did
-        .env("RUST_LOG", "trace")
-        .arg("--config")
-        .arg(&links)
-        .arg("--base-dir")
-        .arg(&ex)
-        .arg("--force")
-        .output()
-        .expect("failed to run fathrs");
+    .current_dir(&repo_root())
+    .env("RUST_LOG", "trace")
+    .arg("--config")
+    .arg(&links)
+    .arg("--base-dir")
+    .arg(&ex)
+    .arg("--force")
+    .output()
+    .expect("failed to run fathrs");
 
   if !output.status.success() {
     panic!(
@@ -141,14 +131,13 @@ fn links_toml_example_test1_creates_expected_symlinks()
     );
   }
 
-  // Assert: symlinks exist and point to
-  // the right sources
+  // Expected outputs under link-target
   let link1 =
-    local_target.join("test1.txt");
+    link_target.join("test1.txt");
   let link2 =
-    local_target.join("test2.txt");
+    link_target.join("test2.txt");
   let link_dir =
-    local_target.join("local-dir");
+    link_target.join("local-dir");
 
   assert!(
     link1.exists(),
@@ -166,8 +155,6 @@ fn links_toml_example_test1_creates_expected_symlinks()
     link_dir.display()
   );
 
-  // Verify they are symlinks (and not
-  // copied files/dirs)
   let md1 =
     std::fs::symlink_metadata(&link1)
       .unwrap();
@@ -195,22 +182,19 @@ fn links_toml_example_test1_creates_expected_symlinks()
     link_dir.display()
   );
 
-  // Verify targets
   assert_symlink_points_to(
     &link1,
-    &local_source.join("test1.txt")
+    &link_source.join("test1.txt")
   );
   assert_symlink_points_to(
     &link2,
-    &local_source.join("test2.txt")
+    &link_source.join("test2.txt")
   );
   assert_symlink_points_to(
     &link_dir,
-    &local_source.join("test-dir")
+    &link_source.join("test-dir")
   );
 
-  // Bonus: ensure the dir link contains
-  // the expected file via traversal
   let linked_file =
     link_dir.join("test3.txt");
   assert!(
