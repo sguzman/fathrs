@@ -1,8 +1,8 @@
 [test1]
-"link-source/test1.txt" = "local-target/test1.txt"
+"link-source/test1.txt" = "link-target/test1.txt"
 
 [test2]
-"link-source/test2.txt" = "local-target/test2.txt"
+"link-source/test2.txt" = "link-target/test2.txt"
 
 [folder]
-"link-source/test-dir" = "local-target/local-dir"
+"link-source/test-dir" = "link-target/local-dir"
