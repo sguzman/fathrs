@@ -1,7 +1,7 @@
 # AI rules index
 
 - Rust repo rules: docs/ai/RUST.md
-- Project overview and API docs: README.md (Pulsewire)
+- Project overview and API docs: README.md (fathers)
 - Branding assets: branding/
 - Release policy: docs/RELEASE.md
 - Roadmap: docs/ROADMAP.md
