@@ -117,6 +117,10 @@ Notes:
 * Paths can be relative or absolute.
 * Relative paths are resolved under `--base-dir` (or the config directory by default).
 
+## Schema
+
+`schema/links.schema.json` describes the same layout (section tables mapping sources to targets). `taplo.toml` has a rule that applies that schema to every `links.toml`, so Taplo-aware editors or `taplo check` will flag deviations automatically.
+
 ## Behavior details
 
 ### What gets created

@@ -23,6 +23,11 @@ use tracing::{
 };
 use tracing_subscriber::EnvFilter;
 
+/// Location of the JSON schema that
+/// describes valid `links.toml` files.
+const LINKS_SCHEMA_PATH: &str =
+  "schema/links.schema.json";
+
 #[derive(Parser, Debug)]
 #[command(
   name = "dotlink",
@@ -130,6 +135,7 @@ fn run(args: Args) -> Result<()> {
   info!(
     ?config_path,
     ?base_dir,
+    schema = %LINKS_SCHEMA_PATH,
     "starting dotlink"
   );
 

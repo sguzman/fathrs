@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fathrs links.toml schema",
+  "description": "Each section maps a source path to a target path, allowing fathrs to create symlinks.",
+  "type": "object",
+  "additionalProperties": {
+    "description": "A section that contains the source to target mappings for links.",
+    "type": "object",
+    "minProperties": 1,
+    "additionalProperties": {
+      "description": "Target path where the symlink should be created.",
+      "type": "string"
+    }
+  }
+}
