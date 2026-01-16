@@ -3,6 +3,10 @@ set shell := ["bash", "-uc"]
 default:
 	@just --list
 
+# Context
+context:
+	files-to-prompt --ignore target/ .git/ --markdown --line-numbers --extension rs --extension toml --extension md . > ~/Downloads/all.txt
+
 # Build
 build:
 	cargo build
