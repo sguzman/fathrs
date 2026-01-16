@@ -2,6 +2,11 @@
 ## [Unreleased]
 
 ### ⚙️ Miscellaneous
+- Test ([ada591b](https://github.com/sguzman/pulsewire/commit/ada591bdbb72da3ae9ce1442163e9dd1cfe9aac3))
+- Fix justfile ([fdf6978](https://github.com/sguzman/pulsewire/commit/fdf69785633792888af8efab6eb602a2adfcb807))
+- Fix test ([2af91de](https://github.com/sguzman/pulsewire/commit/2af91de9ab7c2f6031936da5d7e2a6081e7a4f5b))## [0.2.0] - 2026-01-16
+
+### ⚙️ Miscellaneous
 - Add tests ([7b0f70d](https://github.com/sguzman/pulsewire/commit/7b0f70d776e0117bbe295d29ee6e2b3d21dd7060))
 - Add deps ([fb71db4](https://github.com/sguzman/pulsewire/commit/fb71db4c8019ef143764fcd7f2a1a02f96d48700))
 
