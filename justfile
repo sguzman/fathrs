@@ -25,9 +25,5 @@ validate:
 test:
 	cargo test
 
-# Post-change checklist
-post-change:
-	scripts/post-change.sh
-
 # Everything
-all: build post-change
+all: build
