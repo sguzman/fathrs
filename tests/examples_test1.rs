@@ -23,6 +23,13 @@ fn assert_symlink_points_to(
   link: &Path,
   expected_target: &Path
 ) {
+  assert!(
+    expected_target.exists(),
+    "expected target does not exist: \
+     {}",
+    expected_target.display()
+  );
+
   let actual = std::fs::read_link(link)
     .unwrap_or_else(|e| {
       panic!(
@@ -31,9 +38,6 @@ fn assert_symlink_points_to(
       )
     });
 
-  // `read_link` may return relative
-  // paths. Normalize
-  // relative-to-link-parent.
   let actual_norm = if actual
     .is_absolute()
   {
