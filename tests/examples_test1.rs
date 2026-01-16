@@ -75,54 +75,6 @@ fn assert_symlink_points_to(
   );
 }
 
-#[cfg(windows)]
-fn assert_symlink_points_to(
-  link: &Path,
-  expected_target: &Path
-) {
-  // Same approach works on Windows if
-  // symlinks are enabled.
-  let actual = std::fs::read_link(link)
-    .unwrap_or_else(|e| {
-      panic!(
-        "read_link failed for {}: {e}",
-        link.display()
-      )
-    });
-
-  let actual_norm = if actual
-    .is_absolute()
-  {
-    actual
-  } else {
-    link.parent().unwrap().join(actual)
-  };
-
-  let actual_can =
-    std::fs::canonicalize(&actual_norm)
-      .unwrap_or_else(|e| {
-        panic!(
-          "canonicalize(actual) \
-           failed for {}: {e}",
-          actual_norm.display()
-        )
-      });
-
-  let expected_can =
-    std::fs::canonicalize(
-      expected_target
-    )
-    .unwrap_or_else(|e| {
-      panic!(
-        "canonicalize(expected) \
-         failed for {}: {e}",
-        expected_target.display()
-      )
-    });
-
-  assert_eq!(actual_can, expected_can);
-}
-
 #[test]
 fn links_toml_example_test1_creates_expected_symlinks()
  {
