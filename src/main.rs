@@ -326,17 +326,15 @@ fn link_one(
     return Ok(());
   }
 
-  create_symlink(
-    &src_abs, &dst_abs, src_is_dir
-  )
-  .with_context(|| {
-    format!(
-      "failed to create symlink {} -> \
-       {}",
-      dst_abs.display(),
-      src_abs.display()
-    )
-  })?;
+  create_symlink(&src_abs, &dst_abs)
+    .with_context(|| {
+      format!(
+        "failed to create symlink {} \
+         -> {}",
+        dst_abs.display(),
+        src_abs.display()
+      )
+    })?;
 
   debug!("symlink created");
 
@@ -407,11 +405,10 @@ fn remove_any_path(
 /// Create symlink at `link_path`
 /// pointing to `target`.
 /// `target_is_dir` matters on Windows.
-#[instrument(level="trace", skip_all, fields(target=%target.display(), link_path=%link_path.display(), target_is_dir=target_is_dir))]
+#[instrument(level="trace", skip_all, fields(target=%target.display(), link_path=%link_path.display()))]
 fn create_symlink(
   target: &Path,
-  link_path: &Path,
-  target_is_dir: bool
+  link_path: &Path
 ) -> Result<()> {
   #[cfg(unix)]
   {
@@ -420,18 +417,6 @@ fn create_symlink(
     std::os::unix::fs::symlink(
       target, link_path
     )?;
-    return Ok(());
-  }
-
-  #[cfg(windows)]
-  {
-    // Windows: separate APIs for
-    // file/dir.
-    if target_is_dir {
-      std::os::windows::fs::symlink_dir(target, link_path)?;
-    } else {
-      std::os::windows::fs::symlink_file(target, link_path)?;
-    }
     return Ok(());
   }
 
