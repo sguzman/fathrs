@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.3.1] - 2026-01-16
 
 ### ⚙️ Miscellaneous
 - Context command ([3bf6259](https://github.com/sguzman/pulsewire/commit/3bf62592cec4f6ae8b8226e13dedec81e1a143b7))
