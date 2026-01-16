@@ -2,6 +2,13 @@
 ## [Unreleased]
 
 ### ⚙️ Miscellaneous
+- Context command ([3bf6259](https://github.com/sguzman/pulsewire/commit/3bf62592cec4f6ae8b8226e13dedec81e1a143b7))
+
+### 🚀 Features
+- No windows ([1b05950](https://github.com/sguzman/pulsewire/commit/1b059500658c864d8b86717cad045c38728edc2d))
+- All ([1032e6e](https://github.com/sguzman/pulsewire/commit/1032e6ed17c8ccd3f78879846c293519804e4306))## [0.3.0] - 2026-01-16
+
+### ⚙️ Miscellaneous
 - Fixed target ([9a43c03](https://github.com/sguzman/pulsewire/commit/9a43c03bf8e15ff2f6c7d69569dbb1d753202ddf))
 - Remove windows ([8e21afd](https://github.com/sguzman/pulsewire/commit/8e21afd0f11eb3561792de5af53aefec1637fdb3))
 - More test ([648291a](https://github.com/sguzman/pulsewire/commit/648291a72275f809ff3f8b960bb39561c1f5b02f))
