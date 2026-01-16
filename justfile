@@ -30,4 +30,4 @@ test:
 	cargo test
 
 # Everything
-all: build
+all: build fmt typos links validate test
