@@ -1,6 +1,12 @@
 # Changelog
 ## [Unreleased]
 
+### 📚 Documentation
+- Schema ([82393b0](https://github.com/sguzman/fathers/commit/82393b010be7c0bc7acd3d656f07f00635bd8b27))
+
+### 🚀 Features
+- Add --status flag with sudo-awareness logging” ([5993ba9](https://github.com/sguzman/fathers/commit/5993ba99ae8ba87df689a599789a8f1196ed4c3b))## [1.2.0] - 2026-01-16
+
 ### 🐛 Bug Fixes
 - **(lychee)**: Ignore github links ([d2e9344](https://github.com/sguzman/fathers/commit/d2e9344c686edd7835b960e6c488894b522a7c6b))## [1.1.0] - 2026-01-16
 
