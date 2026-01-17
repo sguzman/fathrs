@@ -2,6 +2,9 @@
 ## [Unreleased]
 
 ### 🐛 Bug Fixes
+- Ensure base-dir/links honor ~ and relative paths ([7b1ffb9](https://github.com/sguzman/fathers/commit/7b1ffb96c4a7b1fca55852966e5e84d67bf2c54f))## [1.3.2] - 2026-01-17
+
+### 🐛 Bug Fixes
 - Bring Clap Parser into main for modular args ([990e7df](https://github.com/sguzman/fathers/commit/990e7df56856828aeedef6c42a32f3ce4bc6945e))
 - Sort libs ([9e37f67](https://github.com/sguzman/fathers/commit/9e37f6714f89fd13c473102cec20d3877dbe4b4c))
 
