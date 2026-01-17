@@ -1,6 +1,12 @@
 # Changelog
 ## [Unreleased]
 
+### ⚙️ Miscellaneous
+- Ignore tmp (for context) ([f300e68](https://github.com/sguzman/fathers/commit/f300e68c094d1781666aad5d625007e8837445aa))
+
+### 🐛 Bug Fixes
+- Add --status flag with sudo-aware logging and honor ~ paths ([95096d5](https://github.com/sguzman/fathers/commit/95096d5a6517399c7ffb1bc3b309f2d3773ff1bd))## [1.3.0] - 2026-01-16
+
 ### 📚 Documentation
 - Schema ([82393b0](https://github.com/sguzman/fathers/commit/82393b010be7c0bc7acd3d656f07f00635bd8b27))
 
