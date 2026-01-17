@@ -86,6 +86,13 @@ fn run(args: Args) -> Result<()> {
   let base_dir = args
     .base_dir
     .map(|bd| expand_home_path(&bd))
+    .and_then(|candidate| {
+      if candidate.is_absolute() {
+        None
+      } else {
+        Some(config_dir.join(candidate))
+      }
+    })
     .unwrap_or_else(|| {
       config_dir.clone()
     });

@@ -25,6 +25,8 @@ use tracing::{
   warn
 };
 
+use crate::cli::expand_home_path;
+
 #[instrument(
     level="trace",
     skip_all,
@@ -351,10 +353,13 @@ fn resolve_under(
   base_dir: &Path,
   p: &Path
 ) -> PathBuf {
-  if p.is_absolute() {
-    normalize_path(p)
+  let expanded = expand_home_path(p);
+  if expanded.is_absolute() {
+    normalize_path(&expanded)
   } else {
-    normalize_path(&base_dir.join(p))
+    normalize_path(
+      &base_dir.join(expanded)
+    )
   }
 }
 
