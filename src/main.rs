@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
+use std::env;
 use std::path::{
   Path,
   PathBuf
@@ -87,6 +88,29 @@ struct LinksToml(
   >
 );
 
+fn expand_home_path(path: &Path) -> PathBuf {
+  let path_str = match path.to_str() {
+    Some(s) => s,
+    None => return path.to_path_buf(),
+  };
+
+  if path_str == "~" {
+    return home_directory().unwrap_or_else(|| path.to_path_buf());
+  }
+
+  if let Some(rest) = path_str.strip_prefix("~/") {
+    if let Some(home) = home_directory() {
+      return home.join(rest);
+    }
+  }
+
+  path.to_path_buf()
+}
+
+fn home_directory() -> Option<PathBuf> {
+  env::var_os("HOME").map(PathBuf::from)
+}
+
 fn main() -> Result<()> {
   // Intense logging via tracing +
   // EnvFilter. Control verbosity with
@@ -119,8 +143,9 @@ fn main() -> Result<()> {
 
 #[instrument(level = "trace", skip_all, fields(config=?args.config, force=args.force, dry_run=args.dry_run))]
 fn run(args: Args) -> Result<()> {
+  let config_candidate = expand_home_path(&args.config);
   let config_path =
-    fs::canonicalize(&args.config)
+    fs::canonicalize(&config_candidate)
       .with_context(|| {
         format!(
           "failed to canonicalize \
@@ -141,9 +166,10 @@ fn run(args: Args) -> Result<()> {
     .to_path_buf();
 
   let base_dir =
-    args.base_dir.unwrap_or_else(
-      || config_dir.clone()
-    );
+    args
+      .base_dir
+      .map(|bd| expand_home_path(&bd))
+      .unwrap_or_else(|| config_dir.clone());
   info!(
     ?config_path,
     ?base_dir,

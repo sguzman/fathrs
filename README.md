@@ -124,7 +124,7 @@ Example:
 Notes:
 
 * Sections are only for organization; they do not affect behavior.
-* Paths can be relative or absolute.
+* Paths can be relative or absolute. Paths starting with `~` expand to your home directory.
 * Relative paths are resolved under `--base-dir` (or the config directory by default).
 
 ## Schema
