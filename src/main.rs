@@ -10,6 +10,7 @@ use anyhow::{
   Result,
   anyhow
 };
+use clap::Parser;
 use cli::{
   Args,
   LINKS_SCHEMA_PATH,
