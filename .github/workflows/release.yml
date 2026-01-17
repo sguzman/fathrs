@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      - name: Install tooling for `just all`
+        run: |
+          cargo install just --locked
+          cargo install taplo --locked
+          cargo install biome --locked
+          cargo install typos --locked
+          cargo install lychee --locked
+
+      - name: Ensure everything passes
+        run: just all
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Package release artifact
+        run: |
+          mkdir -p release
+          cp target/release/fathrs release/
+          tar -C release -cJf fathrs-${{ github.ref_name }}.tar.xz fathrs
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: fathrs-${{ github.ref_name }}.tar.xz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

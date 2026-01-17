@@ -5,7 +5,7 @@ default:
 
 # Context
 context:
-	files-to-prompt --ignore target/ .git/ --markdown --line-numbers --extension rs --extension toml --extension md . > ~/Downloads/all.txt
+	files-to-prompt --ignore target/ .git/ --markdown --line-numbers --extension yaml --extension yml --extension rs --extension toml --extension md . > ~/Downloads/all.txt
 
 # Build
 build:
