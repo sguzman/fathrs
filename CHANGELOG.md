@@ -1,6 +1,15 @@
 # Changelog
 ## [Unreleased]
 
+### ⚙️ Miscellaneous
+- Add github release ([e5d86c0](https://github.com/sguzman/fathers/commit/e5d86c0810831e8002924cdbcde4ea4fda09baf4))
+
+### 🐛 Bug Fixes
+- Build after tests and validation ([0446dc9](https://github.com/sguzman/fathers/commit/0446dc9cb11880a166a61591c68afa7b54a4b022))
+
+### 🚀 Features
+- Add warn-only mode for status reports” ([2020092](https://github.com/sguzman/fathers/commit/2020092dc5434fba4089f9d7242bb878fd0fe353))## [1.3.3] - 2026-01-17
+
 ### 🐛 Bug Fixes
 - Ensure base-dir/links honor ~ and relative paths ([7b1ffb9](https://github.com/sguzman/fathers/commit/7b1ffb96c4a7b1fca55852966e5e84d67bf2c54f))## [1.3.2] - 2026-01-17
 
