@@ -30,7 +30,7 @@ use crate::cli::expand_home_path;
 #[instrument(
     level="trace",
     skip_all,
-    fields(section=%section, force=force, dry_run=dry_run, status=status, src=%src.display(), dst=%dst.display())
+    fields(section=%section, force=force, dry_run=dry_run, status=status, warn_only=warn_only, src=%src.display(), dst=%dst.display())
 )]
 pub(crate) fn link_one(
   base_dir: &Path,
@@ -39,6 +39,7 @@ pub(crate) fn link_one(
   force: bool,
   dry_run: bool,
   status: bool,
+  warn_only: bool,
   section: &str
 ) -> Result<()> {
   let src_abs =
@@ -71,8 +72,12 @@ pub(crate) fn link_one(
   );
 
   if status {
-    log_symlink_status(&dst_abs)?;
-    log_sudo_requirement(&dst_abs);
+    log_symlink_status(
+      &dst_abs, warn_only
+    )?;
+    log_sudo_requirement(
+      &dst_abs, warn_only
+    );
     return Ok(());
   }
 
@@ -248,12 +253,15 @@ fn create_symlink(
 }
 
 fn log_symlink_status(
-  dst_abs: &Path
+  dst_abs: &Path,
+  warn_only: bool
 ) -> Result<()> {
   match fs::symlink_metadata(dst_abs) {
     | Ok(meta) => {
       if meta.file_type().is_symlink() {
-        info!(dst=%dst_abs.display(), "symlink already exists");
+        if !warn_only {
+          info!(dst=%dst_abs.display(), "symlink already exists");
+        }
       } else {
         warn!(dst=%dst_abs.display(), "destination exists but is not a symlink");
       }
@@ -272,11 +280,12 @@ fn log_symlink_status(
 }
 
 fn log_sudo_requirement(
-  dst_abs: &Path
+  dst_abs: &Path,
+  warn_only: bool
 ) {
   if requires_sudo_for_path(dst_abs) {
     warn!(dst=%dst_abs.display(), "creating this link may require sudo");
-  } else {
+  } else if !warn_only {
     info!(dst=%dst_abs.display(), "creating this link should not require sudo");
   }
 }

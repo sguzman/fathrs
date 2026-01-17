@@ -46,7 +46,12 @@ pub(crate) struct Args {
   /// Verify each link’s status instead
   /// of creating links
   #[arg(long)]
-  pub(crate) status: bool
+  pub(crate) status: bool,
+
+  /// When running `--status`, only
+  /// emit warnings
+  #[arg(long)]
+  pub(crate) warn_only: bool
 }
 
 pub(crate) fn expand_home_path(

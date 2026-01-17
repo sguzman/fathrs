@@ -136,6 +136,7 @@ fn run(args: Args) -> Result<()> {
         args.force,
         args.dry_run,
         args.status,
+        args.warn_only,
         section
       )
       .with_context(|| {

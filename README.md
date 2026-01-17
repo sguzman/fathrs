@@ -86,6 +86,8 @@ fathrs --config links.toml --status
 
 Each entry logs `info` when the symlink already exists and `warn` when it does not, then logs again with `info` if the parent directory is writable or `warn` if it likely requires sudo to update. This flag does not create or remove anything.
 
+If you only want to see warnings while running the status check, add `--warn-only` together with `--status`; this suppresses the informational messages and only emits the warning lines shown above.
+
 ## Logging
 
 `fathrs` uses `tracing` for structured logs. You can control verbosity with `RUST_LOG`.
