@@ -1,6 +1,13 @@
 # Changelog
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- Bring Clap Parser into main for modular args ([990e7df](https://github.com/sguzman/fathers/commit/990e7df56856828aeedef6c42a32f3ce4bc6945e))
+- Sort libs ([9e37f67](https://github.com/sguzman/fathers/commit/9e37f6714f89fd13c473102cec20d3877dbe4b4c))
+
+### 🚜 Refactor
+- Split main into cli and link modules ([bd1eb4b](https://github.com/sguzman/fathers/commit/bd1eb4b0481f2a25e51e10d1259540aea4eb9bf8))## [1.3.1] - 2026-01-17
+
 ### ⚙️ Miscellaneous
 - Ignore tmp (for context) ([f300e68](https://github.com/sguzman/fathers/commit/f300e68c094d1781666aad5d625007e8837445aa))
 
