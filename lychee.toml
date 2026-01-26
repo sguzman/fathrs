@@ -14,3 +14,9 @@ exclude = [
   "^https://img.shields.io/",
   "^mailto:",
 ]
+
+# Ignore a specific markdown file by path
+exclude_path = [
+  "docs/migration/.*-DeepWiki.md",
+  "tests/",
+]

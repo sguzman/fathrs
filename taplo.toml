@@ -1,6 +1,8 @@
 exclude = [
   "cliff.toml",
   "release.toml",
+  "target/**",
+  "tmp/**",
 ]
 
 [formatting]
@@ -31,55 +33,3 @@ reorder_keys          = true
 allowed_blank_lines = 1
 
 crlf = false
-
-[[rule]]
-include = [
-  "crates/fetcher/res/config.toml",
-  "crates/fetcher/res/docker.toml",
-]
-schema = { path = "crates/fetcher/res/schemas/config.schema.json" }
-
-[[rule]]
-include = [
-  "crates/fetcher/res/domains.toml",
-]
-schema = { path = "crates/fetcher/res/schemas/domains.schema.json" }
-
-[[rule]]
-include = [
-  "crates/fetcher/res/categories.toml",
-]
-schema = { path = "crates/fetcher/res/schemas/categories.schema.json" }
-
-[[rule]]
-include = [
-  "crates/fetcher/res/feeds/**/global.toml",
-]
-schema = { path = "crates/fetcher/res/schemas/global.schema.json" }
-
-[[rule]]
-exclude = [
-  "crates/fetcher/res/feeds/**/global.toml",
-  "crates/fetcher/res/feeds/youtube.com/**/*.toml",
-]
-include = [
-  "crates/fetcher/res/feeds/**/*.toml",
-]
-schema = { path = "crates/fetcher/res/schemas/feeds.schema.json" }
-
-[[rule]]
-include = [
-  "crates/server/res/config.toml",
-]
-schema = { path = "crates/server/res/schemas/server.schema.json" }
-[[rule]]
-include = [
-  "crates/tui/res/config.toml",
-]
-schema = { path = "crates/tui/res/schemas/tui.schema.json" }
-
-[[rule]]
-include = [
-  "**/links.toml",
-]
-schema = { path = "schema/links.schema.json" }
