@@ -13,7 +13,6 @@ use anyhow::{
 use clap::Parser;
 use cli::{
   Args,
-  LINKS_SCHEMA_PATH,
   expand_home_path
 };
 use link::link_one;
@@ -26,12 +25,46 @@ use tracing::{
 use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Deserialize)]
-struct LinksToml(
-  BTreeMap<
-    String,
-    BTreeMap<String, String>
-  >
-);
+struct LinksToml(BTreeMap<String, Section>);
+
+#[derive(Debug, Deserialize)]
+struct Section {
+  #[serde(default)]
+  sudo: bool,
+  #[serde(flatten)]
+  links: BTreeMap<String, LinkValue>
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum LinkValue {
+  Simple(String),
+  Detailed {
+    target: String,
+    sudo: Option<bool>
+  }
+}
+
+impl LinkValue {
+  fn target(&self) -> &str {
+    match self {
+      | LinkValue::Simple(s) => s,
+      | LinkValue::Detailed {
+        target, ..
+      } => target
+    }
+  }
+
+  fn sudo(&self, section_sudo: bool) -> bool {
+    match self {
+      | LinkValue::Simple(_) =>
+        section_sudo,
+      | LinkValue::Detailed {
+        sudo, ..
+      } => sudo.unwrap_or(section_sudo)
+    }
+  }
+}
 
 fn main() -> Result<()> {
   tracing_subscriber::fmt()
@@ -58,7 +91,7 @@ fn main() -> Result<()> {
   Ok(())
 }
 
-#[instrument(level = "trace", skip_all, fields(config=?args.config, force=args.force, dry_run=args.dry_run))]
+#[instrument(level = "trace", skip_all, fields(config=?args.config))]
 fn run(args: Args) -> Result<()> {
   let config_candidate =
     expand_home_path(&args.config);
@@ -96,12 +129,6 @@ fn run(args: Args) -> Result<()> {
     .unwrap_or_else(|| {
       config_dir.clone()
     });
-  info!(
-    ?config_path,
-    ?base_dir,
-    schema = %LINKS_SCHEMA_PATH,
-    "starting dotlink"
-  );
 
   let raw =
     fs::read_to_string(&config_path)
@@ -124,30 +151,95 @@ fn run(args: Args) -> Result<()> {
       }
     )?;
 
+  let command =
+    args.command.unwrap_or(
+      cli::Command::Link {
+        force: false,
+        dry_run: false
+      }
+    );
+
+  match command {
+    | cli::Command::Validate => {
+      info!(?config_path, "validation successful");
+      return Ok(());
+    }
+    | cli::Command::Link {
+      force,
+      dry_run
+    } => {
+      info!(
+        ?config_path,
+        ?base_dir,
+        force,
+        dry_run,
+        "starting link"
+      );
+      process_links(
+        &links, &base_dir, force,
+        dry_run, false, false
+      )?;
+    }
+    | cli::Command::Probe {
+      warn_only
+    } => {
+      info!(
+        ?config_path,
+        ?base_dir,
+        warn_only,
+        "starting probe"
+      );
+      process_links(
+        &links, &base_dir, false,
+        false, true, warn_only
+      )?;
+    }
+  }
+
+  Ok(())
+}
+
+fn process_links(
+  links: &LinksToml,
+  base_dir: &Path,
+  force: bool,
+  dry_run: bool,
+  status: bool,
+  warn_only: bool
+) -> Result<()> {
   let mut total = 0usize;
-  for (section, mapping) in &links.0 {
-    info!(section = %section, count = mapping.len(), "processing section");
-    for (src_str, dst_str) in mapping {
+  for (section_name, section) in &links.0 {
+    info!(
+      section = %section_name,
+      count = section.links.len(),
+      sudo = section.sudo,
+      "processing section"
+    );
+    for (src_str, val) in &section.links {
       total += 1;
+      let dst_str = val.target();
+      let use_sudo =
+        val.sudo(section.sudo);
+
       link_one(
-        &base_dir,
+        base_dir,
         Path::new(src_str),
         Path::new(dst_str),
-        args.force,
-        args.dry_run,
-        args.status,
-        args.warn_only,
-        section
+        force,
+        dry_run,
+        status,
+        warn_only,
+        section_name,
+        use_sudo
       )
       .with_context(|| {
         format!(
-          "section={section} \
+          "section={section_name} \
            src={src_str} dst={dst_str}"
         )
       })?;
     }
   }
-
   info!(total, "done");
   Ok(())
 }

@@ -1,3 +1,7 @@
+[[schema]]
+path = "schema/links.schema.json"
+include = ["*.schema.toml", "links.toml"]
+
 exclude = [
   "cliff.toml",
   "release.toml",

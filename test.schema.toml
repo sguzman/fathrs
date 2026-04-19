@@ -1,0 +1,10 @@
+[general]
+"examples/test1/link-source/test1.txt" = "tmp/test1.txt"
+
+[sudo_category]
+sudo = true
+"examples/test1/link-source/test2.txt" = "tmp/test2_sudo.txt"
+
+[mixed]
+"examples/test1/link-source/test1.txt" = { target = "tmp/test1_mixed.txt", sudo = true }
+"examples/test1/link-source/test-dir" = { target = "tmp/test_dir_link", sudo = false }

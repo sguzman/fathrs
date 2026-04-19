@@ -30,7 +30,7 @@ use crate::cli::expand_home_path;
 #[instrument(
     level="trace",
     skip_all,
-    fields(section=%section, force=force, dry_run=dry_run, status=status, warn_only=warn_only, src=%src.display(), dst=%dst.display())
+    fields(section=%section, force=force, dry_run=dry_run, status=status, warn_only=warn_only, src=%src.display(), dst=%dst.display(), use_sudo=use_sudo)
 )]
 pub(crate) fn link_one(
   base_dir: &Path,
@@ -40,7 +40,8 @@ pub(crate) fn link_one(
   dry_run: bool,
   status: bool,
   warn_only: bool,
-  section: &str
+  section: &str,
+  use_sudo: bool
 ) -> Result<()> {
   let src_abs =
     resolve_under(base_dir, src);
@@ -60,16 +61,6 @@ pub(crate) fn link_one(
       })?;
   let src_ft = src_meta.file_type();
   let src_is_dir = src_ft.is_dir();
-  let src_is_file = src_ft.is_file();
-  let src_is_symlink =
-    src_ft.is_symlink();
-
-  trace!(
-    src_is_dir,
-    src_is_file,
-    src_is_symlink,
-    "source file type"
-  );
 
   if status {
     log_symlink_status(
@@ -86,7 +77,7 @@ pub(crate) fn link_one(
     if !parent.as_os_str().is_empty() {
       debug!(parent=%parent.display(), "ensuring destination parent exists");
       if !dry_run {
-        fs::create_dir_all(parent)
+        ensure_dir_all(parent, use_sudo)
           .with_context(|| {
             format!(
               "failed to create \
@@ -100,66 +91,89 @@ pub(crate) fn link_one(
   }
 
   match fs::symlink_metadata(&dst_abs) {
-        Ok(dst_meta) => {
-            let dst_ft = dst_meta.file_type();
-            debug!(
-                dst_is_symlink = dst_ft.is_symlink(),
-                dst_is_dir = dst_ft.is_dir(),
-                dst_is_file = dst_ft.is_file(),
-                "destination exists"
-            );
+    | Ok(dst_meta) => {
+      let dst_ft = dst_meta.file_type();
+      debug!(
+        dst_is_symlink =
+          dst_ft.is_symlink(),
+        dst_is_dir = dst_ft.is_dir(),
+        dst_is_file = dst_ft.is_file(),
+        "destination exists"
+      );
 
-            if dst_ft.is_symlink() {
-                match fs::read_link(&dst_abs) {
-                    Ok(existing_target) => {
-                        debug!(existing_target=%existing_target.display(), "destination is symlink; read_link ok");
+      if dst_ft.is_symlink() {
+        match fs::read_link(&dst_abs) {
+          | Ok(existing_target) => {
+            debug!(existing_target=%existing_target.display(), "destination is symlink; read_link ok");
 
-                        let normalized_existing = normalize_link_target(&dst_abs, &existing_target);
-                        let normalized_wanted = src_abs.clone();
+            let normalized_existing =
+              normalize_link_target(
+                &dst_abs,
+                &existing_target
+              );
+            let normalized_wanted =
+              src_abs.clone();
 
-                        if path_eq_loose(&normalized_existing, &normalized_wanted) {
-                            info!("already linked; skipping");
-                            return Ok(());
-                        } else {
-                            warn!(
+            if path_eq_loose(
+              &normalized_existing,
+              &normalized_wanted
+            ) {
+              info!("already linked; skipping");
+              return Ok(());
+            } else {
+              warn!(
                                 existing=%normalized_existing.display(),
                                 wanted=%normalized_wanted.display(),
                                 "symlink exists but points elsewhere"
                             );
-                        }
-                    }
-                    Err(e) => {
-                        warn!(error=?e, "destination is symlink but read_link failed; treating as conflict");
-                    }
-                }
             }
+          }
+          | Err(e) => {
+            warn!(error=?e, "destination is symlink but read_link failed; treating as conflict");
+          }
+        }
+      }
 
-            if !force {
-                bail!(
-                    "destination exists and --force not set: {}",
-                    dst_abs.display()
-                );
-            }
+      if !force {
+        bail!(
+          "destination exists and \
+           --force not set: {}",
+          dst_abs.display()
+        );
+      }
 
-            warn!("--force enabled; removing existing destination");
-            if !dry_run {
-                remove_any_path(&dst_abs).with_context(|| {
-                    format!("failed removing existing destination: {}", dst_abs.display())
-                })?;
-            }
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            trace!("destination does not exist; good");
-        }
-        Err(e) => {
-            return Err(e).with_context(|| {
-                format!(
-                    "failed to symlink_metadata destination: {}",
-                    dst_abs.display()
-                )
-            });
-        }
+      warn!("--force enabled; removing existing destination");
+      if !dry_run {
+        remove_any_path(
+          &dst_abs, use_sudo
+        )
+        .with_context(|| {
+          format!(
+            "failed removing \
+             existing destination: \
+             {}",
+            dst_abs.display()
+          )
+        })?;
+      }
     }
+    | Err(e)
+      if e.kind()
+        == std::io::ErrorKind::NotFound =>
+    {
+      trace!("destination does not exist; good");
+    }
+    | Err(e) => {
+      return Err(e).with_context(|| {
+        format!(
+          "failed to \
+           symlink_metadata \
+           destination: {}",
+          dst_abs.display()
+        )
+      });
+    }
+  }
 
   info!(
     kind = if src_is_dir {
@@ -167,6 +181,7 @@ pub(crate) fn link_one(
     } else {
       "file"
     },
+    sudo = use_sudo,
     "creating symlink"
   );
 
@@ -177,15 +192,17 @@ pub(crate) fn link_one(
     return Ok(());
   }
 
-  create_symlink(&src_abs, &dst_abs)
-    .with_context(|| {
-      format!(
-        "failed to create symlink {} \
-         -> {}",
-        dst_abs.display(),
-        src_abs.display()
-      )
-    })?;
+  create_symlink(
+    &src_abs, &dst_abs, use_sudo
+  )
+  .with_context(|| {
+    format!(
+      "failed to create symlink {} \
+       -> {}",
+      dst_abs.display(),
+      src_abs.display()
+    )
+  })?;
 
   debug!("symlink created");
 
@@ -205,16 +222,52 @@ pub(crate) fn link_one(
   Ok(())
 }
 
-#[instrument(level="trace", skip_all, fields(path=%path.display()))]
+fn ensure_dir_all(
+  path: &Path,
+  use_sudo: bool
+) -> Result<()> {
+  if path.exists() {
+    return Ok(());
+  }
+  if use_sudo {
+    let status =
+      std::process::Command::new("sudo")
+        .arg("mkdir")
+        .arg("-p")
+        .arg(path)
+        .status()?;
+    if !status.success() {
+      bail!("sudo mkdir -p failed");
+    }
+    Ok(())
+  } else {
+    fs::create_dir_all(path)?;
+    Ok(())
+  }
+}
+
+#[instrument(level="trace", skip_all, fields(path=%path.display(), use_sudo=use_sudo))]
 fn remove_any_path(
-  path: &Path
+  path: &Path,
+  use_sudo: bool
 ) -> Result<()> {
   let md = fs::symlink_metadata(path)?;
   let ft = md.file_type();
 
   if ft.is_symlink() || ft.is_file() {
     debug!("removing as file/symlink");
-    fs::remove_file(path)?;
+    if use_sudo {
+      let status =
+        std::process::Command::new("sudo")
+          .arg("rm")
+          .arg(path)
+          .status()?;
+      if !status.success() {
+        bail!("sudo rm failed");
+      }
+    } else {
+      fs::remove_file(path)?;
+    }
     return Ok(());
   }
 
@@ -223,7 +276,19 @@ fn remove_any_path(
       "removing as directory \
        (recursive)"
     );
-    fs::remove_dir_all(path)?;
+    if use_sudo {
+      let status =
+        std::process::Command::new("sudo")
+          .arg("rm")
+          .arg("-rf")
+          .arg(path)
+          .status()?;
+      if !status.success() {
+        bail!("sudo rm -rf failed");
+      }
+    } else {
+      fs::remove_dir_all(path)?;
+    }
     return Ok(());
   }
 
@@ -233,11 +298,29 @@ fn remove_any_path(
   );
 }
 
-#[instrument(level="trace", skip_all, fields(target=%target.display(), link_path=%link_path.display()))]
+#[instrument(level="trace", skip_all, fields(target=%target.display(), link_path=%link_path.display(), use_sudo=use_sudo))]
 fn create_symlink(
   target: &Path,
-  link_path: &Path
+  link_path: &Path,
+  use_sudo: bool
 ) -> Result<()> {
+  if use_sudo {
+    #[cfg(unix)]
+    {
+      let status =
+        std::process::Command::new("sudo")
+          .arg("ln")
+          .arg("-s")
+          .arg(target)
+          .arg(link_path)
+          .status()?;
+      if !status.success() {
+        bail!("sudo ln -s failed");
+      }
+      return Ok(());
+    }
+  }
+
   #[cfg(unix)]
   {
     std::os::unix::fs::symlink(

@@ -6,10 +6,32 @@
   "additionalProperties": {
     "description": "A section that contains the source to target mappings for links.",
     "type": "object",
-    "minProperties": 1,
+    "properties": {
+      "sudo": {
+        "type": "boolean"
+      }
+    },
     "additionalProperties": {
-      "description": "Target path where the symlink should be created.",
-      "type": "string"
+      "oneOf": [
+        {
+          "description": "Target path where the symlink should be created.",
+          "type": "string"
+        },
+        {
+          "properties": {
+            "sudo": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "target"
+          ],
+          "type": "object"
+        }
+      ]
     }
   }
 }

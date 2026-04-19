@@ -6,10 +6,6 @@ use std::path::{
 
 use clap::Parser;
 
-/// Path to the JSON schema that
-/// documents valid `links.toml` files.
-pub const LINKS_SCHEMA_PATH: &str =
-  "schema/links.schema.json";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -19,39 +15,47 @@ pub const LINKS_SCHEMA_PATH: &str =
            links.toml -> symlinks"
 )]
 pub(crate) struct Args {
+  #[command(subcommand)]
+  pub(crate) command: Option<Command>,
+
   /// Path to links.toml
   #[arg(
     long,
-    default_value = "links.toml"
+    default_value = "links.toml",
+    global = true
   )]
   pub(crate) config: PathBuf,
 
   /// Base directory used to resolve
   /// relative paths in links.toml
   /// (defaults to directory of config)
-  #[arg(long)]
-  pub(crate) base_dir: Option<PathBuf>,
+  #[arg(long, global = true)]
+  pub(crate) base_dir: Option<PathBuf>
+}
 
-  /// Replace existing targets (remove
-  /// file/dir/symlink at target and
-  /// recreate)
-  #[arg(long)]
-  pub(crate) force: bool,
+#[derive(clap::Subcommand, Debug)]
+pub(crate) enum Command {
+  /// Create symlinks
+  Link {
+    /// Replace existing targets
+    #[arg(long)]
+    force: bool,
 
-  /// Print what would happen, but do
-  /// not modify filesystem
-  #[arg(long)]
-  pub(crate) dry_run: bool,
+    /// Print what would happen, but do
+    /// not modify filesystem
+    #[arg(long)]
+    dry_run: bool
+  },
 
-  /// Verify each link’s status instead
-  /// of creating links
-  #[arg(long)]
-  pub(crate) status: bool,
+  /// Validate TOML format and schema
+  Validate,
 
-  /// When running `--status`, only
-  /// emit warnings
-  #[arg(long)]
-  pub(crate) warn_only: bool
+  /// Probe status of links
+  Probe {
+    /// Only emit warnings
+    #[arg(long)]
+    warn_only: bool
+  }
 }
 
 pub(crate) fn expand_home_path(
