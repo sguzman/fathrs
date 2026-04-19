@@ -231,13 +231,13 @@ fn ensure_dir_all(
   }
   if use_sudo {
     let status =
-      std::process::Command::new("sudo")
+      std::process::Command::new("doas")
         .arg("mkdir")
         .arg("-p")
         .arg(path)
         .status()?;
     if !status.success() {
-      bail!("sudo mkdir -p failed");
+      bail!("doas mkdir -p failed");
     }
     Ok(())
   } else {
@@ -258,12 +258,12 @@ fn remove_any_path(
     debug!("removing as file/symlink");
     if use_sudo {
       let status =
-        std::process::Command::new("sudo")
+        std::process::Command::new("doas")
           .arg("rm")
           .arg(path)
           .status()?;
       if !status.success() {
-        bail!("sudo rm failed");
+        bail!("doas rm failed");
       }
     } else {
       fs::remove_file(path)?;
@@ -278,13 +278,13 @@ fn remove_any_path(
     );
     if use_sudo {
       let status =
-        std::process::Command::new("sudo")
+        std::process::Command::new("doas")
           .arg("rm")
           .arg("-rf")
           .arg(path)
           .status()?;
       if !status.success() {
-        bail!("sudo rm -rf failed");
+        bail!("doas rm -rf failed");
       }
     } else {
       fs::remove_dir_all(path)?;
@@ -308,14 +308,14 @@ fn create_symlink(
     #[cfg(unix)]
     {
       let status =
-        std::process::Command::new("sudo")
+        std::process::Command::new("doas")
           .arg("ln")
           .arg("-s")
           .arg(target)
           .arg(link_path)
           .status()?;
       if !status.success() {
-        bail!("sudo ln -s failed");
+        bail!("doas ln -s failed");
       }
       return Ok(());
     }
