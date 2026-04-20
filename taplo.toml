@@ -1,13 +1,14 @@
-[[schema]]
-path = "schema/links.schema.json"
-include = ["*.schema.toml", "links.toml"]
-
 exclude = [
   "cliff.toml",
   "release.toml",
   "target/**",
   "tmp/**",
 ]
+
+[[rule]]
+include = ["*.schema.toml", "links.toml"]
+[rule.schema]
+path = "schema/links.schema.json"
 
 [formatting]
 array_auto_collapse  = false

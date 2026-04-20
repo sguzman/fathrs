@@ -7,6 +7,9 @@
     "description": "A section that contains the source to target mappings for links.",
     "type": "object",
     "properties": {
+      "copy": {
+        "type": "boolean"
+      },
       "sudo": {
         "type": "boolean"
       }
@@ -19,6 +22,9 @@
         },
         {
           "properties": {
+            "copy": {
+              "type": "boolean"
+            },
             "sudo": {
               "type": "boolean"
             },

@@ -6,7 +6,8 @@ use std::path::{
 };
 use std::{
   fs,
-  io
+  io,
+  process::{Command}
 };
 
 use anyhow::{
@@ -41,14 +42,20 @@ pub(crate) fn link_one(
   status: bool,
   warn_only: bool,
   section: &str,
-  use_sudo: bool
+  use_sudo: bool,
+  use_copy: bool
 ) -> Result<()> {
   let src_abs =
     resolve_under(base_dir, src);
   let dst_abs =
     resolve_under(base_dir, dst);
 
-  debug!(src_abs=%src_abs.display(), dst_abs=%dst_abs.display(), "resolved paths");
+  debug!(
+    src_abs = %src_abs.display(),
+    dst_abs = %dst_abs.display(),
+    use_copy,
+    "resolved paths"
+  );
 
   let src_meta =
     fs::symlink_metadata(&src_abs)
@@ -64,7 +71,7 @@ pub(crate) fn link_one(
 
   if status {
     log_symlink_status(
-      &dst_abs, warn_only
+      &dst_abs, warn_only, use_copy
     )?;
     log_sudo_requirement(
       &dst_abs, warn_only
@@ -101,7 +108,16 @@ pub(crate) fn link_one(
         "destination exists"
       );
 
-      if dst_ft.is_symlink() {
+      let should_remove = if use_copy {
+        if !force {
+          bail!(
+            "destination exists and \
+             --force not set: {}",
+            dst_abs.display()
+          );
+        }
+        true
+      } else if dst_ft.is_symlink() {
         match fs::read_link(&dst_abs) {
           | Ok(existing_target) => {
             debug!(existing_target=%existing_target.display(), "destination is symlink; read_link ok");
@@ -126,35 +142,41 @@ pub(crate) fn link_one(
                                 wanted=%normalized_wanted.display(),
                                 "symlink exists but points elsewhere"
                             );
+              true
             }
           }
           | Err(e) => {
             warn!(error=?e, "destination is symlink but read_link failed; treating as conflict");
+            true
           }
         }
-      }
+      } else {
+        true
+      };
 
-      if !force {
-        bail!(
-          "destination exists and \
-           --force not set: {}",
-          dst_abs.display()
-        );
-      }
-
-      warn!("--force enabled; removing existing destination");
-      if !dry_run {
-        remove_any_path(
-          &dst_abs, use_sudo
-        )
-        .with_context(|| {
-          format!(
-            "failed removing \
-             existing destination: \
-             {}",
+      if should_remove {
+        if !force {
+          bail!(
+            "destination exists and \
+             --force not set: {}",
             dst_abs.display()
+          );
+        }
+
+        warn!("--force enabled; removing existing destination");
+        if !dry_run {
+          remove_any_path(
+            &dst_abs, use_sudo
           )
-        })?;
+          .with_context(|| {
+            format!(
+              "failed removing \
+               existing destination: \
+               {}",
+              dst_abs.display()
+            )
+          })?;
+        }
       }
     }
     | Err(e)
@@ -175,6 +197,11 @@ pub(crate) fn link_one(
     }
   }
 
+  let action_name = if use_copy {
+    "copying"
+  } else {
+    "creating symlink"
+  };
   info!(
     kind = if src_is_dir {
       "dir"
@@ -182,29 +209,44 @@ pub(crate) fn link_one(
       "file"
     },
     sudo = use_sudo,
-    "creating symlink"
+    action = action_name,
+    "performing action"
   );
 
   if dry_run {
     info!(
-      "dry-run: would create symlink"
+      "dry-run: would perform {}",
+      action_name
     );
     return Ok(());
   }
 
-  create_symlink(
-    &src_abs, &dst_abs, use_sudo
-  )
-  .with_context(|| {
-    format!(
-      "failed to create symlink {} \
-       -> {}",
-      dst_abs.display(),
-      src_abs.display()
+  if use_copy {
+    copy_any_path(
+      &src_abs, &dst_abs, use_sudo
     )
-  })?;
+    .with_context(|| {
+      format!(
+        "failed to copy {} -> {}",
+        src_abs.display(),
+        dst_abs.display()
+      )
+    })?;
+  } else {
+    create_symlink(
+      &src_abs, &dst_abs, use_sudo
+    )
+    .with_context(|| {
+      format!(
+        "failed to create symlink {} \
+         -> {}",
+        dst_abs.display(),
+        src_abs.display()
+      )
+    })?;
+  }
 
-  debug!("symlink created");
+  debug!("action completed");
 
   match fs::symlink_metadata(&dst_abs) {
     | Ok(md) => {
@@ -337,11 +379,19 @@ fn create_symlink(
 
 fn log_symlink_status(
   dst_abs: &Path,
-  warn_only: bool
+  warn_only: bool,
+  use_copy: bool
 ) -> Result<()> {
   match fs::symlink_metadata(dst_abs) {
     | Ok(meta) => {
-      if meta.file_type().is_symlink() {
+      let ft = meta.file_type();
+      if use_copy {
+        if ft.is_symlink() {
+          warn!(dst=%dst_abs.display(), "destination exists as symlink (expected copy)");
+        } else if !warn_only {
+          info!(dst=%dst_abs.display(), "file/dir exists (copied)");
+        }
+      } else if ft.is_symlink() {
         if !warn_only {
           info!(dst=%dst_abs.display(), "symlink already exists");
         }
@@ -353,7 +403,7 @@ fn log_symlink_status(
       if e.kind()
         == io::ErrorKind::NotFound =>
     {
-      warn!(dst=%dst_abs.display(), "symlink missing");
+      warn!(dst=%dst_abs.display(), "destination missing");
     }
     | Err(e) => {
       warn!(dst=%dst_abs.display(), error=?e, "failed to stat destination");
@@ -507,4 +557,53 @@ fn normalize_path(p: &Path) -> PathBuf {
     }
   }
   out
+}
+
+pub(crate) fn copy_any_path(
+  src: &Path,
+  dst: &Path,
+  use_sudo: bool
+) -> Result<()> {
+  if use_sudo {
+    let mut cmd = Command::new("sudo");
+    cmd.arg("cp").arg("-r").arg(src).arg(dst);
+    let status = cmd.status()?;
+    if !status.success() {
+      bail!(
+        "sudo cp -r failed with status: {}",
+        status
+      );
+    }
+  } else {
+    let src_meta = fs::metadata(src)?;
+    if src_meta.is_dir() {
+      copy_dir_all(src, dst)?;
+    } else {
+      fs::copy(src, dst)?;
+    }
+  }
+  Ok(())
+}
+
+fn copy_dir_all(
+  src: impl AsRef<Path>,
+  dst: impl AsRef<Path>
+) -> Result<()> {
+  fs::create_dir_all(&dst)?;
+  for entry in fs::read_dir(src)? {
+    let entry = entry?;
+    let ty = entry.file_type()?;
+    if ty.is_dir() {
+      copy_dir_all(
+        entry.path(),
+        dst.as_ref().join(entry.file_name())
+      )?;
+    } else {
+      fs::copy(
+        entry.path(),
+        dst.as_ref().join(entry.file_name())
+      )?;
+    }
+  }
+  Ok(())
 }

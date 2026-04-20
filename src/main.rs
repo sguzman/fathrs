@@ -30,6 +30,8 @@ struct LinksToml(BTreeMap<String, Section>);
 #[derive(Debug, Deserialize)]
 struct Section {
   #[serde(default)]
+  copy: bool,
+  #[serde(default)]
   sudo: bool,
   #[serde(flatten)]
   links: BTreeMap<String, LinkValue>
@@ -41,6 +43,7 @@ enum LinkValue {
   Simple(String),
   Detailed {
     target: String,
+    copy: Option<bool>,
     sudo: Option<bool>
   }
 }
@@ -52,6 +55,16 @@ impl LinkValue {
       | LinkValue::Detailed {
         target, ..
       } => target
+    }
+  }
+
+  fn copy(&self, section_copy: bool) -> bool {
+    match self {
+      | LinkValue::Simple(_) =>
+        section_copy,
+      | LinkValue::Detailed {
+        copy, ..
+      } => copy.unwrap_or(section_copy)
     }
   }
 
@@ -220,6 +233,8 @@ fn process_links(
       let dst_str = val.target();
       let use_sudo =
         val.sudo(section.sudo);
+      let use_copy =
+        val.copy(section.copy);
 
       link_one(
         base_dir,
@@ -230,7 +245,8 @@ fn process_links(
         status,
         warn_only,
         section_name,
-        use_sudo
+        use_sudo,
+        use_copy
       )
       .with_context(|| {
         format!(
