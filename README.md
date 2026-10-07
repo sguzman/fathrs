@@ -13,11 +13,13 @@ manager, package manager, profile framework, or repository manager.
 
 ## Status
 
-Fathrs is being hardened for real daily use on Linux. The current execution
-model validates the complete configuration before changing the filesystem,
-supports dry runs, verifies changes after applying them, and can probe for drift.
+Fathrs is hardened for daily use on Linux: it validates the complete
+configuration before changing the filesystem, supports dry runs, verifies
+changes after applying them, probes for drift, and has an isolated filesystem
+test suite.
 
-See [ROADMAP.md](./ROADMAP.md) for remaining hardening and release work.
+See [ROADMAP.md](./ROADMAP.md) for the project checklist and remaining release
+bookkeeping.
 
 ## Install
 
@@ -81,6 +83,19 @@ fathrs --config ./links.toml probe
 
 `probe` exits non-zero when it finds drift.
 
+Remove managed destinations safely:
+
+```bash
+fathrs --config ./links.toml unlink --dry-run
+fathrs --config ./links.toml unlink
+```
+
+`unlink` only removes destinations that still match the configured state. It
+refuses drifted copies, wrong symlinks, and other unexpected data.
+
+A realistic mixed Linux example lives under
+[`examples/dotfiles`](./examples/dotfiles).
+
 ## Configuration
 
 Every top-level table is a section. Entries map a source path to a destination.
@@ -140,6 +155,12 @@ Applies the validated plan.
 - `--force`: replace conflicting destinations.
 
 Correct symlinks and matching copies are idempotent and skipped.
+
+### `unlink`
+
+Removes managed destinations only when they still match the configured desired
+state. Missing destinations are skipped; drifted or otherwise unexpected
+destinations are refused. `--dry-run` previews removals.
 
 ### `validate`
 
@@ -201,7 +222,7 @@ just build
 just install
 ```
 
-CI runs the same `just ci` contract on pushes to `main` and pull requests.
+CI runs the equivalent locked Cargo verification contract on pushes to `main` and pull requests.
 
 See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for execution invariants and
 [docs/RELEASE.md](./docs/RELEASE.md) for release policy.

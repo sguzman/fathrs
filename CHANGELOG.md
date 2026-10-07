@@ -1,71 +1,58 @@
 # Changelog
-## [Unreleased]
 
-### ⚙️ Miscellaneous
-- Add github release ([e5d86c0](https://github.com/sguzman/fathers/commit/e5d86c0810831e8002924cdbcde4ea4fda09baf4))
+## [1.4.0] - 2026-10-07
 
-### 🐛 Bug Fixes
-- Build after tests and validation ([0446dc9](https://github.com/sguzman/fathers/commit/0446dc9cb11880a166a61591c68afa7b54a4b022))
+This release re-establishes Fathrs as a small, production-usable dotfile
+deployer after the repository accumulated stale template infrastructure and
+untested filesystem behavior.
 
-### 🚀 Features
-- Add warn-only mode for status reports” ([2020092](https://github.com/sguzman/fathers/commit/2020092dc5434fba4089f9d7242bb878fd0fe353))## [1.3.3] - 2026-01-17
+### Features
 
-### 🐛 Bug Fixes
-- Ensure base-dir/links honor ~ and relative paths ([7b1ffb9](https://github.com/sguzman/fathers/commit/7b1ffb96c4a7b1fca55852966e5e84d67bf2c54f))## [1.3.2] - 2026-01-17
+- Build and validate a complete deployment plan before the first filesystem
+  mutation.
+- Add safe `unlink` support with dry-run; only destinations still matching the
+  configured state are removed.
+- Make `probe` detect missing destinations, wrong filesystem kinds, wrong
+  symlink targets, and drifted copied content, with non-zero exit status on
+  drift.
+- Add idempotent recursive copy mode for files, directories, and Unix symlink
+  entries.
+- Standardize privileged operations on `doas`.
+- Adopt `doas = true` as the canonical configuration key while retaining
+  `sudo = true` as a backward-compatible alias.
 
-### 🐛 Bug Fixes
-- Bring Clap Parser into main for modular args ([990e7df](https://github.com/sguzman/fathers/commit/990e7df56856828aeedef6c42a32f3ce4bc6945e))
-- Sort libs ([9e37f67](https://github.com/sguzman/fathers/commit/9e37f6714f89fd13c473102cec20d3877dbe4b4c))
+### Safety and correctness
 
-### 🚜 Refactor
-- Split main into cli and link modules ([bd1eb4b](https://github.com/sguzman/fathers/commit/bd1eb4b0481f2a25e51e10d1259540aea4eb9bf8))## [1.3.1] - 2026-01-17
+- Fix absolute and relative `--base-dir` resolution.
+- Reject duplicate resolved destinations, source/destination identity or
+  containment, and dangerous direct root/home destinations.
+- Ensure a missing later source cannot leave earlier entries partially applied.
+- Require explicit `--force` before replacing conflicting files, directories,
+  or symlinks.
+- Make dry-run use the same validated plan and destination-state checks as real
+  execution.
+- Verify every applied change and unlink operation afterward.
+- Fix lexical path normalization for repeated leading parent components.
+- Route structured logs to stderr so command data on stdout remains usable.
 
-### ⚙️ Miscellaneous
-- Ignore tmp (for context) ([f300e68](https://github.com/sguzman/fathers/commit/f300e68c094d1781666aad5d625007e8837445aa))
+### Testing and tooling
 
-### 🐛 Bug Fixes
-- Add --status flag with sudo-aware logging and honor ~ paths ([95096d5](https://github.com/sguzman/fathers/commit/95096d5a6517399c7ffb1bc3b309f2d3773ff1bd))## [1.3.0] - 2026-01-16
+- Replace the old repository-mutating example test with an isolated temporary
+  filesystem integration suite covering links, directories, copy drift,
+  force behavior, dry runs, path resolution, probe, validation, and unlink.
+- Make privileged command construction testable without invoking `doas`.
+- Standardize development and CI on stable Rust.
+- Add push/pull-request CI for check, strict Clippy, tests, rustdoc, install
+  smoke testing, and rustfmt.
+- Modernize the GitHub release workflow and release artifact packaging.
+- Add a realistic EndeavourOS/Hyprland-style dotfiles example.
 
-### 📚 Documentation
-- Schema ([82393b0](https://github.com/sguzman/fathers/commit/82393b010be7c0bc7acd3d656f07f00635bd8b27))
+### Documentation
 
-### 🚀 Features
-- Add --status flag with sudo-awareness logging” ([5993ba9](https://github.com/sguzman/fathers/commit/5993ba99ae8ba87df689a599789a8f1196ed4c3b))## [1.2.0] - 2026-01-16
+- Replace unrelated Rust-template migration/branding/AI documentation with a
+  focused README, architecture notes, release policy, and recovery roadmap.
+- Repair project-name and repository-link residue.
 
-### 🐛 Bug Fixes
-- **(lychee)**: Ignore github links ([d2e9344](https://github.com/sguzman/fathers/commit/d2e9344c686edd7835b960e6c488894b522a7c6b))## [1.1.0] - 2026-01-16
-
-### 🐛 Bug Fixes
-- Fixed wrong project name ([812b13c](https://github.com/sguzman/fathers/commit/812b13c1e3d55cdcb8c63a764164e29d57c573bc))## [0.3.1] - 2026-01-16
-
-### ⚙️ Miscellaneous
-- Context command ([3bf6259](https://github.com/sguzman/fathers/commit/3bf62592cec4f6ae8b8226e13dedec81e1a143b7))
-
-### 🚀 Features
-- No windows ([1b05950](https://github.com/sguzman/fathers/commit/1b059500658c864d8b86717cad045c38728edc2d))
-- All ([1032e6e](https://github.com/sguzman/fathers/commit/1032e6ed17c8ccd3f78879846c293519804e4306))## [0.3.0] - 2026-01-16
-
-### ⚙️ Miscellaneous
-- Fixed target ([9a43c03](https://github.com/sguzman/fathers/commit/9a43c03bf8e15ff2f6c7d69569dbb1d753202ddf))
-- Remove windows ([8e21afd](https://github.com/sguzman/fathers/commit/8e21afd0f11eb3561792de5af53aefec1637fdb3))
-- More test ([648291a](https://github.com/sguzman/fathers/commit/648291a72275f809ff3f8b960bb39561c1f5b02f))
-- Fixed wrong target dir ([56f8c51](https://github.com/sguzman/fathers/commit/56f8c510951266763e1c789dbcf75903acd68ecd))
-
-### 🚀 Features
-- Readme ([4e72fa8](https://github.com/sguzman/fathers/commit/4e72fa8546b524d7ca5c5b27ad0536dec718ad93))## [0.2.1] - 2026-01-16
-
-### ⚙️ Miscellaneous
-- Test ([ada591b](https://github.com/sguzman/fathers/commit/ada591bdbb72da3ae9ce1442163e9dd1cfe9aac3))
-- Fix justfile ([fdf6978](https://github.com/sguzman/fathers/commit/fdf69785633792888af8efab6eb602a2adfcb807))
-- Fix test ([2af91de](https://github.com/sguzman/fathers/commit/2af91de9ab7c2f6031936da5d7e2a6081e7a4f5b))## [0.2.0] - 2026-01-16
-
-### ⚙️ Miscellaneous
-- Add tests ([7b0f70d](https://github.com/sguzman/fathers/commit/7b0f70d776e0117bbe295d29ee6e2b3d21dd7060))
-- Add deps ([fb71db4](https://github.com/sguzman/fathers/commit/fb71db4c8019ef143764fcd7f2a1a02f96d48700))
-
-### 🚀 Features
-- Main stub ([6a50bb6](https://github.com/sguzman/fathers/commit/6a50bb63312a7ac05e8a142ecc57ed1dc9f0f84c))## [0.1.1] - 2026-01-15
-
-### ⚙️ Miscellaneous
-- Init commit ([e67d921](https://github.com/sguzman/fathers/commit/e67d921cfd1fb5a300cf110b18baccf8abb4d126))
-- Template files ([c6347ee](https://github.com/sguzman/fathers/commit/c6347ee64c14a8b8daba1e3257c3056933e6a554))<!-- generated by git-cliff -->
+> Historical releases before 1.4.0 had inconsistent changelog, tag, and feature
+> bookkeeping. Their commits remain available in Git history; 1.4.0 resumes the
+> authoritative release record from the repaired codebase.
