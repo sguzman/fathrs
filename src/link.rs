@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io::{self, BufReader, Read};
 #[cfg(unix)]
@@ -405,13 +406,58 @@ fn files_equal(a: &Path, b: &Path) -> Result<bool> {
   }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum DoasOperation<'a> {
+  Mkdir(&'a Path),
+  RemoveFile(&'a Path),
+  RemoveDir(&'a Path),
+  Symlink { target: &'a Path, link: &'a Path },
+  Copy { src: &'a Path, dst: &'a Path },
+}
+
+fn doas_args(operation: DoasOperation<'_>) -> Vec<OsString> {
+  match operation {
+    DoasOperation::Mkdir(path) => vec!["mkdir".into(), "-p".into(), "--".into(), path.into()],
+    DoasOperation::RemoveFile(path) => {
+      vec!["rm".into(), "-f".into(), "--".into(), path.into()]
+    }
+    DoasOperation::RemoveDir(path) => {
+      vec!["rm".into(), "-rf".into(), "--".into(), path.into()]
+    }
+    DoasOperation::Symlink { target, link } => vec![
+      "ln".into(),
+      "-s".into(),
+      "--".into(),
+      target.into(),
+      link.into(),
+    ],
+    DoasOperation::Copy { src, dst } => {
+      vec!["cp".into(), "-a".into(), "--".into(), src.into(), dst.into()]
+    }
+  }
+}
+
+fn run_doas(operation: DoasOperation<'_>) -> Result<()> {
+  let args = doas_args(operation);
+  let status = Command::new("doas")
+    .args(&args)
+    .status()
+    .with_context(|| format!("failed to execute doas with arguments {args:?}"))?;
+
+  if !status.success() {
+    bail!("doas command failed with status {status}: {args:?}");
+  }
+
+  Ok(())
+}
+
 fn ensure_dir_all(path: &Path, use_doas: bool) -> Result<()> {
   if path.exists() {
     return Ok(());
   }
 
   if use_doas {
-    run_doas(["mkdir", "-p", "--"], Some(path))?;
+    run_doas(DoasOperation::Mkdir(path))?;
   } else {
     fs::create_dir_all(path)?;
   }
@@ -424,11 +470,12 @@ fn remove_any_path(path: &Path, use_doas: bool) -> Result<()> {
   let file_type = meta.file_type();
 
   if use_doas {
-    if file_type.is_dir() && !file_type.is_symlink() {
-      run_doas(["rm", "-rf", "--"], Some(path))?;
+    let operation = if file_type.is_dir() && !file_type.is_symlink() {
+      DoasOperation::RemoveDir(path)
     } else {
-      run_doas(["rm", "-f", "--"], Some(path))?;
-    }
+      DoasOperation::RemoveFile(path)
+    };
+    run_doas(operation)?;
     return Ok(());
   }
 
@@ -443,19 +490,10 @@ fn remove_any_path(path: &Path, use_doas: bool) -> Result<()> {
 
 fn create_symlink(target: &Path, link_path: &Path, use_doas: bool) -> Result<()> {
   if use_doas {
-    let status = Command::new("doas")
-      .arg("ln")
-      .arg("-s")
-      .arg("--")
-      .arg(target)
-      .arg(link_path)
-      .status()
-      .context("failed to execute doas ln")?;
-
-    if !status.success() {
-      bail!("doas ln -s failed with status {status}");
-    }
-
+    run_doas(DoasOperation::Symlink {
+      target,
+      link: link_path,
+    })?;
     return Ok(());
   }
 
@@ -474,19 +512,7 @@ fn create_symlink(target: &Path, link_path: &Path, use_doas: bool) -> Result<()>
 
 fn copy_any_path(src: &Path, dst: &Path, use_doas: bool) -> Result<()> {
   if use_doas {
-    let status = Command::new("doas")
-      .arg("cp")
-      .arg("-a")
-      .arg("--")
-      .arg(src)
-      .arg(dst)
-      .status()
-      .context("failed to execute doas cp")?;
-
-    if !status.success() {
-      bail!("doas cp -a failed with status {status}");
-    }
-
+    run_doas(DoasOperation::Copy { src, dst })?;
     return Ok(());
   }
 
@@ -523,21 +549,6 @@ fn copy_path_local(src: &Path, dst: &Path) -> Result<()> {
   }
 
   bail!("unsupported source file type: {}", src.display())
-}
-
-fn run_doas<const N: usize>(args: [&str; N], path: Option<&Path>) -> Result<()> {
-  let mut command = Command::new("doas");
-  command.args(args);
-  if let Some(path) = path {
-    command.arg(path);
-  }
-
-  let status = command.status().context("failed to execute doas")?;
-  if !status.success() {
-    bail!("doas command failed with status {status}");
-  }
-
-  Ok(())
 }
 
 #[cfg(unix)]
@@ -579,7 +590,8 @@ fn requires_privilege_for_path(_path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use super::normalize_path;
+  use super::{doas_args, normalize_path, DoasOperation};
+  use std::ffi::OsString;
   use std::path::Path;
 
   #[test]
@@ -600,5 +612,52 @@ mod tests {
   #[test]
   fn normalize_does_not_escape_filesystem_root() {
     assert_eq!(normalize_path(Path::new("/../../a")), Path::new("/a"));
+  }
+
+  #[test]
+  fn privileged_copy_command_is_doas_cp_archive() {
+    assert_eq!(
+      doas_args(DoasOperation::Copy {
+        src: Path::new("/src"),
+        dst: Path::new("/dst"),
+      }),
+      vec![
+        OsString::from("cp"),
+        OsString::from("-a"),
+        OsString::from("--"),
+        OsString::from("/src"),
+        OsString::from("/dst"),
+      ]
+    );
+  }
+
+  #[test]
+  fn privileged_directory_removal_is_explicitly_recursive() {
+    assert_eq!(
+      doas_args(DoasOperation::RemoveDir(Path::new("/target"))),
+      vec![
+        OsString::from("rm"),
+        OsString::from("-rf"),
+        OsString::from("--"),
+        OsString::from("/target"),
+      ]
+    );
+  }
+
+  #[test]
+  fn privileged_symlink_command_keeps_target_and_link_order() {
+    assert_eq!(
+      doas_args(DoasOperation::Symlink {
+        target: Path::new("/source"),
+        link: Path::new("/target"),
+      }),
+      vec![
+        OsString::from("ln"),
+        OsString::from("-s"),
+        OsString::from("--"),
+        OsString::from("/source"),
+        OsString::from("/target"),
+      ]
+    );
   }
 }
