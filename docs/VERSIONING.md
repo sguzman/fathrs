@@ -13,8 +13,7 @@ rewritten to pretend the current discipline existed from the beginning.
 - historical MVP/version milestone: `v1.0.0` exists, but its original release
   process predates current doctrine
 - SemVer adoption mode: `retrofit`
-- SemVer adoption boundary commit: **this commit**; exact SHA is recorded by the
-  immediate reconciliation commit
+- SemVer adoption boundary commit: `f1654719399c9c0536df06e00bffb13b20876aa8`
 - SemVer adoption baseline tag: `v1.4.0`
 - latest pre-adoption release/tag: `v1.3.4`
 - legacy version history: `v0.1.1` through `v1.3.4` are preserved
