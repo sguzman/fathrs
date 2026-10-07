@@ -218,14 +218,15 @@ pub(crate) fn unlink_entry(entry: &PlanEntry, dry_run: bool) -> Result<()> {
   remove_any_path(&entry.dst, entry.use_doas)
     .with_context(|| format!("failed to remove {}", entry.dst.display()))?;
 
-  if fs::symlink_metadata(&entry.dst).is_ok() {
-    bail!(
+  match fs::symlink_metadata(&entry.dst) {
+    Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+    Ok(_) => bail!(
       "post-unlink verification failed; destination still exists: {}",
       entry.dst.display()
-    );
+    ),
+    Err(error) => Err(error)
+      .with_context(|| format!("failed to verify removal of {}", entry.dst.display())),
   }
-
-  Ok(())
 }
 
 pub(crate) fn probe_entry(entry: &PlanEntry) -> Result<ProbeState> {
@@ -275,13 +276,16 @@ pub(crate) fn normalize_path(path: &Path) -> PathBuf {
 
   for component in path.components() {
     match component {
+      Component::Prefix(_) | Component::RootDir => out.push(component.as_os_str()),
       Component::CurDir => {}
       Component::ParentDir => {
-        if !out.pop() {
+        if matches!(out.components().next_back(), Some(Component::Normal(_))) {
+          out.pop();
+        } else if !out.has_root() {
           out.push("..");
         }
       }
-      other => out.push(other.as_os_str()),
+      Component::Normal(value) => out.push(value),
     }
   }
 
@@ -593,5 +597,15 @@ mod tests {
   #[test]
   fn normalize_preserves_leading_parent_for_relative_paths() {
     assert_eq!(normalize_path(Path::new("../a/../b")), Path::new("../b"));
+  }
+
+  #[test]
+  fn normalize_preserves_multiple_leading_parents() {
+    assert_eq!(normalize_path(Path::new("../../a")), Path::new("../../a"));
+  }
+
+  #[test]
+  fn normalize_does_not_escape_filesystem_root() {
+    assert_eq!(normalize_path(Path::new("/../../a")), Path::new("/a"));
   }
 }
