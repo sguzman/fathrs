@@ -236,3 +236,25 @@ fn build_plan(links: &LinksToml, base_dir: &Path, check_sources: bool) -> Result
 
   Ok(plan)
 }
+
+#[cfg(test)]
+mod tests {
+  use super::LinksToml;
+
+  #[test]
+  fn per_entry_doas_override_beats_section_default() {
+    let links: LinksToml = toml::from_str(
+      r#"
+[system]
+doas = true
+"inherit.conf" = "/tmp/inherit.conf"
+"override.conf" = { target = "/tmp/override.conf", doas = false }
+"#,
+    )
+    .unwrap();
+
+    let section = &links.0["system"];
+    assert!(section.links["inherit.conf"].doas(section.doas));
+    assert!(!section.links["override.conf"].doas(section.doas));
+  }
+}
