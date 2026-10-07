@@ -1,0 +1,12 @@
+[desktop]
+"config/fish" = "~/.config/fish"
+"config/hypr" = "~/.config/hypr"
+"config/kitty" = "~/.config/kitty"
+
+[generated]
+copy = true
+"generated/example.conf" = "~/.config/example/generated.conf"
+
+[system]
+doas = true
+"system/fathrs-example.service" = "/etc/systemd/system/fathrs-example.service"
