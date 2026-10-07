@@ -181,6 +181,53 @@ pub(crate) fn apply_entry(entry: &PlanEntry, force: bool, dry_run: bool) -> Resu
   Ok(())
 }
 
+pub(crate) fn unlink_entry(entry: &PlanEntry, dry_run: bool) -> Result<()> {
+  let state = probe_entry(entry)?;
+
+  match state {
+    ProbeState::Missing => {
+      info!(
+        section = %entry.section,
+        dst = %entry.dst.display(),
+        "destination already absent; skipping"
+      );
+      return Ok(());
+    }
+    ProbeState::Ok => {}
+    other => {
+      bail!(
+        "section {:?}: refusing to unlink destination in state {}: {}",
+        entry.section,
+        other.label(),
+        entry.dst.display()
+      );
+    }
+  }
+
+  info!(
+    section = %entry.section,
+    dst = %entry.dst.display(),
+    dry_run,
+    "planned managed destination removal"
+  );
+
+  if dry_run {
+    return Ok(());
+  }
+
+  remove_any_path(&entry.dst, entry.use_doas)
+    .with_context(|| format!("failed to remove {}", entry.dst.display()))?;
+
+  if fs::symlink_metadata(&entry.dst).is_ok() {
+    bail!(
+      "post-unlink verification failed; destination still exists: {}",
+      entry.dst.display()
+    );
+  }
+
+  Ok(())
+}
+
 pub(crate) fn probe_entry(entry: &PlanEntry) -> Result<ProbeState> {
   let dst_meta = match fs::symlink_metadata(&entry.dst) {
     Ok(meta) => meta,
