@@ -3,46 +3,44 @@ name: Release
 on:
   release:
     types:
-      - created
+      - published
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout tagged source
+        uses: actions/checkout@v5
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          profile: minimal
+          components: clippy,rustfmt
 
-      - name: Install tooling for `just all`
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify tagged source
         run: |
-          cargo install just --locked
-          cargo install taplo --locked
-          cargo install biome --locked
-          cargo install typos --locked
-          cargo install lychee --locked
-
-      - name: Ensure everything passes
-        run: just all
+          cargo check --all-targets --all-features --locked
+          cargo clippy --all-targets --all-features --locked -- -D warnings
+          cargo test --all-features --locked
+          RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features --locked
+          cargo fmt --check
 
       - name: Build release binary
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: Package release artifact
         run: |
           mkdir -p release
           cp target/release/fathrs release/
-          tar -C release -cJf fathrs-${{ github.ref_name }}.tar.xz fathrs
+          tar -C release -cJf fathrs-${{ github.ref_name }}-x86_64-linux.tar.xz fathrs
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: fathrs-${{ github.ref_name }}.tar.xz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: fathrs-${{ github.ref_name }}-x86_64-linux.tar.xz
