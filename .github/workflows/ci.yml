@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -24,8 +24,24 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Install just
-        run: cargo install just --locked
+      - name: Check
+        run: cargo check --all-targets --all-features --locked
 
-      - name: Verify
-        run: just ci
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --all-features --locked
+
+      - name: Docs
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --no-deps --all-features --locked
+
+      - name: Install smoke test
+        run: |
+          cargo install --path . --locked --debug --force --root target/install-root
+          target/install-root/bin/fathrs --version
+
+      - name: Format
+        run: cargo fmt --check
