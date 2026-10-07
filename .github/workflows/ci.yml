@@ -38,10 +38,15 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --no-deps --all-features --locked
 
-      - name: Install smoke test
+      - name: Local install smoke test
         run: |
           cargo install --path . --locked --debug --force --root target/install-root
           target/install-root/bin/fathrs --version
+
+      - name: Git install smoke test
+        run: |
+          cargo install --git https://github.com/sguzman/fathrs --rev "$GITHUB_SHA" --locked --debug --force --root target/git-install-root
+          target/git-install-root/bin/fathrs --version
 
       - name: Format
         run: cargo fmt --check
