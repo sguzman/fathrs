@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use cli::{expand_home_path, Args};
-use link::{apply_entry, probe_entry, PlanEntry, ProbeState};
+use link::{apply_entry, probe_entry, unlink_entry, PlanEntry, ProbeState};
 use serde::Deserialize;
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
@@ -99,6 +99,21 @@ fn run(args: Args) -> Result<()> {
   });
 
   match command {
+    cli::Command::Unlink { dry_run } => {
+      let plan = build_plan(&links, &base_dir, true)?;
+      info!(
+        config = %config_path.display(),
+        entries = plan.len(),
+        dry_run,
+        "unlink plan validated"
+      );
+
+      for entry in &plan {
+        unlink_entry(entry, dry_run)?;
+      }
+
+      info!(entries = plan.len(), "unlink complete");
+    }
     cli::Command::Validate => {
       let plan = build_plan(&links, &base_dir, false)?;
       info!(entries = plan.len(), "configuration is valid");
