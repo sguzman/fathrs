@@ -85,7 +85,7 @@ fn main() -> Result<()> {
       EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
           EnvFilter::new(
-            "info,dotlink=trace"
+            "info,fathrs=trace"
           )
         })
     )
@@ -131,17 +131,15 @@ fn run(args: Args) -> Result<()> {
 
   let base_dir = args
     .base_dir
-    .map(|bd| expand_home_path(&bd))
-    .and_then(|candidate| {
+    .map(|bd| {
+      let candidate = expand_home_path(&bd);
       if candidate.is_absolute() {
-        None
+        candidate
       } else {
-        Some(config_dir.join(candidate))
+        config_dir.join(candidate)
       }
     })
-    .unwrap_or_else(|| {
-      config_dir.clone()
-    });
+    .unwrap_or_else(|| config_dir.clone());
 
   let raw =
     fs::read_to_string(&config_path)
