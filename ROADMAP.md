@@ -1,211 +1,178 @@
 # Fathrs Roadmap
 
-Fathrs should be a small, dependable dotfile deployer: a declarative `links.toml`
-describes source-to-destination mappings, and Fathrs makes the machine match that
-description with symlinks or explicit copies.
+Fathrs is a small, dependable dotfile deployer: a declarative `links.toml`
+describes source-to-destination mappings, and Fathrs makes the machine match
+that description with symlinks or explicit copies.
 
-The goal is not to recreate Dotter. Fathrs should stay narrow, inspectable, and
-safe enough to use as the owner's real dotfile manager.
+The recovery/hardening roadmap was executed on 2026-10-07. The codebase is now
+ready for real dotfile use; the only remaining publication step is creating the
+GitHub `v1.4.0` tag/release.
 
 ## Design Contract
 
-Fathrs should remain:
+Fathrs remains:
 
 - Rust-native and Unix/Linux-focused.
 - Declarative: plain TOML in, filesystem operations out.
 - Small: no templating language, plugin system, profile engine, secret manager,
   package manager, or repository mutation framework.
-- Predictable: a dry run should accurately describe the real run.
-- Idempotent: rerunning a correct configuration should be a no-op.
+- Predictable: dry-run and real execution consume the same validated plan.
+- Idempotent: rerunning a correct configuration is a no-op.
 - Conservative with destructive operations.
-- Easy to install and easy to verify.
+- Easy to install and verify.
 
-## Phase 0 - Establish a trustworthy baseline
+## Phase 0 - Trustworthy baseline
 
-Before adding features, make HEAD coherent and prove what currently works.
+- [x] Add CI for pushes and pull requests.
+- [x] Standardize repository and CI on stable Rust.
+- [x] Reduce verification to tools that actually belong to Fathrs.
+- [x] Remove unrelated template tasks from the `justfile`.
+- [x] Make `just ci` the authoritative locked local verification contract.
+- [x] Run the application through check, Clippy, tests, rustdoc, install smoke
+      tests, and rustfmt in CI.
+- [x] Replace generic migration/template documentation with Fathrs-specific
+      documentation.
 
-- [ ] Add normal CI for pushes and pull requests.
-- [ ] Make the CI toolchain match the repository toolchain.
-- [ ] Reduce CI to tools that actually belong to this project and are
-      installable in the declared environment.
-- [ ] Remove stale template tasks from the `justfile` (Cite Otter fixture and
-      normalization commands, unrelated scripts, etc.).
-- [ ] Make `just ci` the authoritative local verification command.
-- [ ] Run/build/test the current program through CI and record/fix every failure.
-- [ ] Replace the obsolete generic migration roadmap with project-specific
-      documentation once its useful historical material has been checked.
+Acceptance criterion met: a clean checkout has one obvious verification path,
+and the full Linux CI contract passes.
 
-Acceptance criterion: a clean checkout has one obvious verification path and
-that path passes on Linux.
+## Phase 1 - Correctness bugs
 
-## Phase 1 - Fix known correctness bugs
+- [x] Fix absolute `--base-dir` handling.
+- [x] Fix relative `--base-dir` resolution against the config directory.
+- [x] Use `doas` consistently for privileged copy/link/remove/mkdir operations.
+- [x] Replace stale `dotlink` CLI and tracing identity with `fathrs`.
+- [x] Replace obsolete integration-test CLI assumptions.
+- [x] Fix lexical normalization of repeated leading `..` components.
+- [x] Audit relative and broken symlink comparison.
+- [x] Audit copy semantics for files, directories, and Unix symlink entries.
+- [x] Align schema, parser behavior, examples, and README.
 
-These are known defects in current HEAD and should be repaired before Fathrs is
-used on real dotfiles.
+Acceptance criterion met: documented CLI/config examples match implemented
+behavior.
 
-- [ ] Fix absolute `--base-dir` handling. An absolute base directory must be
-      used as supplied rather than discarded in favor of the config directory.
-- [ ] Fix privileged copy mode to use the same privilege mechanism as the rest
-      of the application (`doas`, not the leftover `sudo cp -r`).
-- [ ] Fix CLI identity: Clap still calls the program `dotlink`; all user-facing
-      names should be `fathrs`.
-- [ ] Fix the stale tracing target/default filter that still refers to
-      `dotlink`.
-- [ ] Fix integration tests so they exercise the current subcommand structure
-      rather than an obsolete CLI shape.
-- [ ] Audit path normalization and relative symlink comparison for edge cases.
-- [ ] Audit copy semantics for files, directories, symlinks, and replacement.
-- [ ] Make schema, parser behavior, examples, and README describe exactly the
-      same configuration language.
+## Phase 2 - Destructive-operation safety
 
-Acceptance criterion: the documented CLI and configuration examples work
-exactly as written.
-
-## Phase 2 - Make destructive behavior safe
-
-`--force` currently has enough authority to recursively remove an existing
-destination directory. That is too dangerous to trust with a real home
-directory until the execution plan is validated first.
-
-- [ ] Introduce a preflight/planning pass: resolve and validate every operation
-      before mutating the filesystem.
-- [ ] Reject obviously dangerous or nonsensical mappings, including source and
-      destination resolving to the same path.
-- [ ] Ensure missing/invalid sources fail before any earlier entries are changed.
-- [ ] Define explicit replacement rules for files, directories, and symlinks.
-- [ ] Make `--dry-run` use the same plan as the real execution path so it cannot
-      disagree about what will happen.
-- [ ] Make `--force` output identify exactly what will be removed/replaced.
-- [ ] Add regression tests around recursive directory replacement and other
+- [x] Build and validate the complete plan before the first mutation.
+- [x] Reject duplicate destinations, identical paths, path containment, and
+      dangerous direct root/home destinations.
+- [x] Ensure a missing later source prevents all earlier mutations.
+- [x] Define conflict/replacement behavior for files, directories, and symlinks.
+- [x] Make `--dry-run` use the exact real execution plan.
+- [x] Make `--force` explicitly report replacement target/state.
+- [x] Add regression coverage for recursive directory replacement and other
       destructive cases.
-- [ ] Decide whether a lightweight backup option is warranted; do not add one
-      unless it can remain simple and deterministic.
+- [x] Decide on backup support: not added. Preflight, dry-run, explicit
+      `--force`, post-change verification, and safe `unlink` keep the core
+      simpler and deterministic.
 
-Acceptance criterion: a bad configuration cannot partially mutate earlier
-entries before Fathrs discovers a predictable validation error later in the
-file.
+Acceptance criterion met: predictable validation errors are discovered before
+any configured mutation begins.
 
-## Phase 3 - Build a serious test matrix
+## Phase 3 - Test matrix
 
-The existing integration coverage is far too small for software that rewrites
-filesystem state.
-
-- [ ] Unit-test path expansion and resolution (`~`, relative paths, absolute
-      paths, `.`, `..`).
-- [ ] Test file symlinks and directory symlinks.
-- [ ] Test idempotent reruns.
-- [ ] Test conflicts with and without `--force`.
-- [ ] Test wrong-target symlink replacement.
-- [ ] Test broken symlinks.
-- [ ] Test copy mode for files and directory trees.
-- [ ] Test section defaults and per-entry overrides for `copy` and privilege
+- [x] Test home, relative, absolute, `.`, and `..` path behavior.
+- [x] Test file and directory symlinks.
+- [x] Test idempotent reruns.
+- [x] Test conflicts with and without `--force`.
+- [x] Test wrong-target and broken symlinks.
+- [x] Test recursive file/directory copy behavior and copied symlink entries.
+- [x] Test section defaults and per-entry overrides for copy and privilege
       escalation.
-- [ ] Test `probe` and `--warn-only`.
-- [ ] Test dry-run leaves the filesystem untouched.
-- [ ] Test validation failures and useful error messages.
-- [ ] Isolate privileged-operation construction so it can be tested without
-      actually escalating privileges.
-- [ ] Use temporary directories rather than mutating checked-in example
-      directories during tests.
+- [x] Test `probe` and `--warn-only`.
+- [x] Test dry-run filesystem immutability.
+- [x] Test semantic/config validation failures.
+- [x] Isolate and test `doas` command construction without elevation.
+- [x] Use temporary directories instead of mutating checked-in fixtures.
 
-Acceptance criterion: ordinary filesystem behavior is comprehensively testable
-without root/doas and CI covers all non-privileged behavior.
+Current suite: 8 unit tests plus 25 isolated CLI/filesystem integration tests.
 
-## Phase 4 - Clean the configuration model
+Acceptance criterion met: ordinary filesystem behavior is comprehensively
+testable without root or doas.
 
-Keep the format small, but make it unambiguous and stable.
+## Phase 4 - Configuration model
 
-- [ ] Decide final terminology for the privilege flag. The config currently says
-      `sudo = true` while the implementation uses `doas`.
-- [ ] Preserve backward compatibility if renaming that flag is worthwhile.
-- [ ] Tighten the JSON schema so malformed detailed entries and unknown fields
-      are caught where appropriate.
-- [ ] Make `validate` perform meaningful semantic validation in addition to TOML
-      deserialization.
-- [ ] Produce clear diagnostics containing section, source, destination, and the
-      failed rule.
-- [ ] Document path-resolution rules once, with tests mirroring the examples.
+- [x] Make `doas = true` the canonical privilege flag.
+- [x] Preserve `sudo = true` as a backward-compatible alias.
+- [x] Tighten the JSON schema for detailed entries and conflicting privilege
+      keys.
+- [x] Reject unknown detailed-entry fields in the actual Serde parser too.
+- [x] Make `validate` perform semantic plan validation without filesystem
+      mutation or requiring source files to exist.
+- [x] Include section/path context in operational validation diagnostics.
+- [x] Document and test path-resolution rules.
 
-Acceptance criterion: users can tell whether a config is valid without touching
+Acceptance criterion met: configuration validity can be checked without touching
 the filesystem.
 
-## Phase 5 - Make probe/status genuinely useful
+## Phase 5 - Probe/status
 
-Probe should answer "is this machine in the state my dotfiles repo describes?"
+- [x] Compare resolved symlink targets with configured sources.
+- [x] Distinguish missing, correct, wrong-kind, wrong-target, and drifted copy
+      states.
+- [x] Return non-zero when drift is detected.
+- [x] Keep `--warn-only` quiet for healthy entries.
+- [x] Separate configured `doas` preference from an OS-level write/search
+      access check.
+- [x] Keep structured diagnostics on stderr and stable probe data on stdout.
 
-- [ ] Compare a symlink's resolved target with the configured source, not merely
-      report that a symlink exists.
-- [ ] For copy entries, distinguish missing, present-and-matching, and drifted.
-- [ ] Give probe a stable concise summary and non-zero exit status when drift is
-      detected.
-- [ ] Keep `--warn-only` useful for shell/login checks.
-- [ ] Separate actual privilege requirements from the configured preference to
-      use privilege escalation.
-
-Acceptance criterion: `fathrs probe` can be used as a reliable machine-state
-check.
+Acceptance criterion met: `fathrs probe` is a reliable machine-state check.
 
 ## Phase 6 - Installation and release hygiene
 
-Once behavior is trustworthy, make installation boring.
+- [x] Synchronize crate version and changelog for `1.4.0`.
+- [x] Repair stale `sguzman/fathers` links and old project-name residue.
+- [x] Replace deprecated/broken release workflow pieces.
+- [x] Make release artifacts run the same locked verification gates as CI.
+- [x] Standardize on stable Rust.
+- [x] Verify `cargo install --path . --locked`.
+- [x] Verify `cargo install --git https://github.com/sguzman/fathrs --rev <SHA>
+      --locked` in CI.
+- [ ] Publish the real GitHub `v1.4.0` tag/release and confirm the release
+      workflow attaches the Linux archive.
 
-- [ ] Bring the crate version, changelog, tags, and actual feature history back
-      into sync.
-- [ ] Repair stale `sguzman/fathers` links and other old project-name residue.
-- [ ] Replace deprecated/broken release workflow pieces.
-- [ ] Ensure release artifacts are built only after the same checks used by CI.
-- [ ] Decide on the supported Rust channel and use it consistently.
-- [ ] Verify `cargo install --git https://github.com/sguzman/fathrs` and
-      `cargo install --path .` workflows.
-- [ ] Create a real release only after the repaired build is proven.
+Engineering/release preparation is complete. The unchecked item is the external
+GitHub publication action; the available repository automation used for this
+recovery does not expose tag/release creation.
 
-Acceptance criterion: a tagged release corresponds to tested source and yields a
-working `fathrs` binary on the intended Linux environment.
+## Phase 7 - Daily-use ergonomics
 
-## Phase 7 - Daily-use dotfile ergonomics
-
-Only after the core is safe and tested, add the small conveniences that make it
-pleasant as the owner's actual dotfile manager.
-
-- [ ] Create a realistic dotfiles fixture modeled on the intended EndeavourOS /
-      Hyprland setup without committing private machine data.
-- [ ] Ensure one config can comfortably mix linked user config, copied files, and
+- [x] Add a realistic EndeavourOS/Hyprland-style dotfiles fixture without
+      private machine data.
+- [x] Demonstrate one config mixing linked user config, copied files, and
       privileged system destinations.
-- [ ] Consider an explicit `unlink`/remove-managed-links command, with the same
-      plan-first safety model.
-- [ ] Consider a concise machine-readable probe format only if another local
-      tool actually needs it.
-- [ ] Improve output readability without hiding filesystem actions.
+- [x] Add safe `unlink` with the same plan-first model and dry-run support.
+      Unlink refuses drifted/unexpected destinations.
+- [x] Consider machine-readable probe output: deferred because there is no
+      consumer requiring it; stdout is already stable and concise.
+- [x] Improve output separation/readability without hiding filesystem actions.
 
-Acceptance criterion: the owner's real dotfiles can be described cleanly
-without adding framework machinery.
+Acceptance criterion met: real Linux dotfiles can be described without adding
+framework machinery.
 
 ## Phase 8 - Documentation cleanup
 
-Documentation should describe the tool, not the history of AI/template work
-around it.
+- [x] Keep the README focused on purpose, install, config, commands, examples,
+      and safety behavior.
+- [x] Remove unrelated template/reference and obsolete fixture material.
+- [x] Keep a short architecture document covering execution invariants.
+- [x] Keep release/changelog documentation coherent with the repaired project.
+- [x] Preserve a realistic example instead of repository-mutating test fixtures.
 
-- [ ] Keep the README focused on purpose, install, config, common commands, and
-      safety behavior.
-- [ ] Remove or archive irrelevant template/reference documentation.
-- [ ] Keep a short architecture/developer document for the execution model and
-      invariants.
-- [ ] Keep changelog/release documentation accurate and generated consistently.
+Acceptance criterion met: the README is sufficient to install, configure, probe,
+deploy, and safely remove managed entries.
 
-Acceptance criterion: a new user can understand and safely use Fathrs from the
-README alone.
+## Verification Record
 
-## Execution Order
+The repaired `1.4.0` source has passed the complete CI contract on Linux:
 
-Work through the phases in order. Within the first pass, the priority is:
+- Cargo check with `--locked`
+- Clippy across all targets/features with warnings denied
+- 33 tests (8 unit + 25 integration)
+- rustdoc with warnings denied
+- local-path installation smoke test
+- GitHub-source installation smoke test at the exact commit SHA
+- rustfmt check
 
-1. Baseline CI/tooling.
-2. Known correctness bugs.
-3. Destructive-operation safety.
-4. Test matrix.
-5. Config validation.
-6. Probe correctness.
-7. Release/install cleanup.
-8. Daily-use conveniences and documentation polish.
-
-No major new features should be added until Phases 0-3 are green.
+No major feature expansion is planned before real-world dogfooding identifies a
+specific need.
