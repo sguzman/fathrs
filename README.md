@@ -18,8 +18,22 @@ configuration before changing the filesystem, supports dry runs, verifies
 changes after applying them, probes for drift, and has an isolated filesystem
 test suite.
 
-See [ROADMAP.md](./ROADMAP.md) for the project checklist and remaining release
-bookkeeping.
+See [ROADMAP.md](./ROADMAP.md) for the project checklist and
+[docs/VERSIONING.md](./docs/VERSIONING.md) for the maintained compatibility
+contract and release epoch.
+
+## Versioning
+
+Fathrs adopted rigorous Semantic Versioning after an earlier release history
+already existed.
+
+- `v0.1.1` through `v1.3.4`: preserved legacy/pre-discipline history;
+- `v1.4.0`: audited retrofit SemVer baseline;
+- later releases: strict prospective SemVer against the contract recorded in
+  [docs/VERSIONING.md](./docs/VERSIONING.md).
+
+Old tags are not renumbered or rewritten, and adoption itself does not justify
+a major version.
 
 ## Install
 
