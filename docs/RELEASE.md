@@ -62,28 +62,22 @@ Do not reset history to `v1.0.0`, move old tags, or create a ceremonial
 
 The baseline version and changelog are already prepared in the repository.
 
-After the SemVer-adoption transaction is complete:
+The retrofit ceremony is **one-time only** and is repository-owned:
 
-1. ensure `main` is clean and current;
-2. run `just ci`;
-3. inspect `docs/VERSIONING.md` and `CHANGELOG.md`;
-4. create the annotated baseline tag locally:
+```fish
+just semver-baseline
+```
 
-   ```bash
-   git tag -a v1.4.0 -m "fathrs 1.4.0 - SemVer adoption baseline"
-   ```
+That recipe requires `main`, requires a clean working tree, runs `just ci`,
+creates the annotated `v1.4.0` baseline tag if needed, and pushes `main` plus
+that tag. It is deliberately idempotent only when an existing `v1.4.0` tag
+already points at the same commit; it refuses a conflicting historical tag.
 
-5. push the accepted commit and tag explicitly:
+After `v1.4.0` exists, never perform the retrofit ceremony again. Ordinary
+future releases use the normal `release-dry-run` / `release` recipes below.
 
-   ```bash
-   git push origin main
-   git push origin v1.4.0
-   ```
-
-6. optionally run `just release-artifact` and attach the resulting archive to
-   a GitHub Release for `v1.4.0`.
-
-Do not recreate the baseline tag after it has been pushed.
+A hosted GitHub Release and locally built archive remain optional distribution
+surfaces; neither is versioning authority.
 
 ## Subsequent releases
 
