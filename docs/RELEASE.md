@@ -21,6 +21,9 @@ The local release stack is:
 - cargo-release for Cargo version mutation, release commit, and local annotated
   tag creation.
 
+Release-only prerequisites are `git-cliff` and `cargo-release`. They are local
+tools, not hosted release authority.
+
 GitHub is an optional hosting surface for the pushed tag, release notes, and a
 locally built archive.
 
