@@ -5,8 +5,9 @@ describes source-to-destination mappings, and Fathrs makes the machine match
 that description with symlinks or explicit copies.
 
 The recovery/hardening roadmap was executed on 2026-10-07. The codebase is now
-ready for real dotfile use; the only remaining publication step is creating the
-GitHub `v1.4.0` tag/release.
+ready for real dotfile use. Rigorous SemVer was then adopted as a retrofit
+governance boundary: `v1.4.0` is the audited baseline and earlier tags remain
+legacy provenance.
 
 ## Design Contract
 
@@ -122,18 +123,21 @@ Acceptance criterion met: `fathrs probe` is a reliable machine-state check.
 
 - [x] Synchronize crate version and changelog for `1.4.0`.
 - [x] Repair stale `sguzman/fathers` links and old project-name residue.
-- [x] Replace deprecated/broken release workflow pieces.
-- [x] Make release artifacts run the same locked verification gates as CI.
+- [x] Replace deprecated/broken release tooling.
+- [x] Keep version classification, release commits, and tags local; GitHub CI is
+      evidence only.
 - [x] Standardize on stable Rust.
 - [x] Verify `cargo install --path . --locked`.
 - [x] Verify `cargo install --git https://github.com/sguzman/fathrs --rev <SHA>
       --locked` in CI.
-- [ ] Publish the real GitHub `v1.4.0` tag/release and confirm the release
-      workflow attaches the Linux archive.
+- [x] Formalize retrofit SemVer state and the v1.4.0 compatibility baseline.
+- [ ] Create and push the local annotated `v1.4.0` baseline tag after the exact
+      adoption candidate passes `just ci`.
+- [ ] Optionally create the hosted GitHub Release and attach the locally built
+      Linux archive.
 
-Engineering/release preparation is complete. The unchecked item is the external
-GitHub publication action; the available repository automation used for this
-recovery does not expose tag/release creation.
+Engineering/release preparation is complete. Version/tag authority remains
+local by policy; GitHub may host the resulting tag/release assets.
 
 ## Phase 7 - Daily-use ergonomics
 
