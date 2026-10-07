@@ -1,6 +1,7 @@
 [package]
 edition = "2024"
 name    = "fathrs"
+publish = false
 version = "1.4.0"
 
 [dependencies]
