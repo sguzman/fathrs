@@ -51,10 +51,10 @@ pub(crate) fn expand_home_path(path: &Path) -> PathBuf {
     return home_directory().unwrap_or_else(|| path.to_path_buf());
   }
 
-  if let Some(rest) = path_str.strip_prefix("~/") {
-    if let Some(home) = home_directory() {
-      return home.join(rest);
-    }
+  if let Some(rest) = path_str.strip_prefix("~/")
+    && let Some(home) = home_directory()
+  {
+    return home.join(rest);
   }
 
   path.to_path_buf()
