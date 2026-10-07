@@ -608,5 +608,5 @@ fn validate_rejects_unknown_detailed_entry_fields() {
   let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
 
   assert!(!output.status.success());
-  assert!(stderr(&output).contains("unknown field"));
+  assert!(stderr(&output).contains("failed to parse TOML"));
 }
