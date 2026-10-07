@@ -4,9 +4,13 @@ pre-release-commit-message = "chore(release): prepare {{version}}"
 pre-release-hook = [
   "sh",
   "-c",
-  "root=$(git rev-parse --show-toplevel) && git -C \"$root\" cliff --config \"$root/cliff.toml\" --output \"$root/CHANGELOG.md\" && git -C \"$root\" add CHANGELOG.md",
+  "root=$(git rev-parse --show-toplevel) && git -C \"$root\" cliff --config \"$root/cliff.toml\" --unreleased --tag \"v{{version}}\" --prepend \"$root/CHANGELOG.md\" && git -C \"$root\" add CHANGELOG.md",
 ]
 publish = false
+push = false
+tag = true
+sign-commit = false
+sign-tag = false
 shared-version = true
 tag-name = "v{{version}}"
-tag-prefix = "v"
+tag-message = "fathrs {{version}}"
