@@ -7,7 +7,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use tracing::{info, warn};
 
 use crate::cli::expand_home_path;
@@ -171,11 +171,7 @@ pub(crate) fn apply_entry(entry: &PlanEntry, force: bool, dry_run: bool) -> Resu
 
   let final_state = probe_entry(entry)?;
   if final_state != ProbeState::Ok {
-    bail!(
-      "post-change verification failed for {}: {}",
-      entry.dst.display(),
-      final_state.label()
-    );
+    bail!("post-change verification failed for {}: {}", entry.dst.display(), final_state.label());
   }
 
   Ok(())
@@ -220,12 +216,12 @@ pub(crate) fn unlink_entry(entry: &PlanEntry, dry_run: bool) -> Result<()> {
 
   match fs::symlink_metadata(&entry.dst) {
     Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-    Ok(_) => bail!(
-      "post-unlink verification failed; destination still exists: {}",
-      entry.dst.display()
-    ),
-    Err(error) => Err(error)
-      .with_context(|| format!("failed to verify removal of {}", entry.dst.display())),
+    Ok(_) => {
+      bail!("post-unlink verification failed; destination still exists: {}", entry.dst.display())
+    }
+    Err(error) => {
+      Err(error).with_context(|| format!("failed to verify removal of {}", entry.dst.display()))
+    }
   }
 }
 
@@ -588,10 +584,7 @@ mod tests {
 
   #[test]
   fn normalize_removes_dot_and_parent_components() {
-    assert_eq!(
-      normalize_path(Path::new("/tmp/a/./b/../c")),
-      Path::new("/tmp/a/c")
-    );
+    assert_eq!(normalize_path(Path::new("/tmp/a/./b/../c")), Path::new("/tmp/a/c"));
   }
 
   #[test]

@@ -13,10 +13,7 @@ struct Fixture {
 impl Fixture {
   fn new(name: &str) -> Self {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir().join(format!(
-      "fathrs-test-{name}-{}-{id}",
-      std::process::id()
-    ));
+    let root = std::env::temp_dir().join(format!("fathrs-test-{name}-{}-{id}", std::process::id()));
     let home = root.join("home");
 
     let _ = fs::remove_dir_all(&root);
@@ -69,11 +66,8 @@ fn stderr(output: &Output) -> String {
 #[cfg(unix)]
 fn assert_symlink_to(link: &Path, target: &Path) {
   let link_target = fs::read_link(link).unwrap();
-  let resolved = if link_target.is_absolute() {
-    link_target
-  } else {
-    link.parent().unwrap().join(link_target)
-  };
+  let resolved =
+    if link_target.is_absolute() { link_target } else { link.parent().unwrap().join(link_target) };
   assert_eq!(fs::canonicalize(resolved).unwrap(), fs::canonicalize(target).unwrap());
 }
 
@@ -94,11 +88,7 @@ sudo = false
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "validate".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
 
   assert!(output.status.success(), "stderr: {}", stderr(&output));
 }
@@ -115,19 +105,11 @@ fn links_a_file_and_is_idempotent() {
 "#,
   );
 
-  let first = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let first = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(first.status.success(), "stderr: {}", stderr(&first));
   assert_symlink_to(&destination, &source);
 
-  let second = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let second = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(second.status.success(), "stderr: {}", stderr(&second));
   assert_symlink_to(&destination, &source);
 }
@@ -145,11 +127,7 @@ fn links_a_directory() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
 
   assert!(output.status.success(), "stderr: {}", stderr(&output));
   assert_symlink_to(&destination, &source);
@@ -163,10 +141,8 @@ fn absolute_base_dir_is_used_as_supplied() {
   fs::create_dir_all(&base).unwrap();
   fs::write(base.join("source.txt"), "hello").unwrap();
   let destination = fixture.path("target.txt");
-  let config = fixture.config(&format!(
-    "[dotfiles]\n\"source.txt\" = \"{}\"\n",
-    destination.display()
-  ));
+  let config =
+    fixture.config(&format!("[dotfiles]\n\"source.txt\" = \"{}\"\n", destination.display()));
 
   let output = fixture.run_paths(&[
     "--config".as_ref(),
@@ -214,11 +190,7 @@ fn conflict_without_force_fails_without_replacing_destination() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
 
   assert!(!output.status.success());
   assert_eq!(fs::read_to_string(fixture.path("target.txt")).unwrap(), "old");
@@ -259,11 +231,7 @@ fn missing_later_source_prevents_earlier_mutation() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
 
   assert!(!output.status.success());
   assert!(!fixture.path("target-present.txt").exists());
@@ -282,27 +250,15 @@ copy = true
 "#,
   );
 
-  let link = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let link = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(link.status.success(), "stderr: {}", stderr(&link));
   assert_eq!(fs::read_to_string(&destination).unwrap(), "hello");
 
-  let second = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let second = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(second.status.success(), "stderr: {}", stderr(&second));
 
   fs::write(&destination, "drift").unwrap();
-  let probe = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let probe = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
 
   assert!(!probe.status.success());
   assert!(stdout(&probe).contains("DRIFTED"));
@@ -321,26 +277,14 @@ fn copy_mode_tracks_directory_drift() {
 "#,
   );
 
-  let link = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let link = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(link.status.success(), "stderr: {}", stderr(&link));
 
-  let probe_ok = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let probe_ok = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
   assert!(probe_ok.status.success(), "stderr: {}", stderr(&probe_ok));
 
   fs::write(destination.join("nested/b.txt"), "changed").unwrap();
-  let probe_bad = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let probe_bad = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
   assert!(!probe_bad.status.success());
   assert!(stdout(&probe_bad).contains("DRIFTED"));
 }
@@ -359,17 +303,10 @@ copy = true
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
 
   assert!(output.status.success(), "stderr: {}", stderr(&output));
-  assert_eq!(
-    fs::read_to_string(fixture.path("copy-target.txt")).unwrap(),
-    "copied"
-  );
+  assert_eq!(fs::read_to_string(fixture.path("copy-target.txt")).unwrap(), "copied");
   assert_symlink_to(&fixture.path("link-target.txt"), &linked_source);
 }
 
@@ -379,11 +316,7 @@ fn probe_reports_wrong_symlink_target() {
   fixture.write("source.txt", "source");
   fixture.write("other.txt", "other");
   #[cfg(unix)]
-  std::os::unix::fs::symlink(
-    fixture.path("other.txt"),
-    fixture.path("target.txt"),
-  )
-  .unwrap();
+  std::os::unix::fs::symlink(fixture.path("other.txt"), fixture.path("target.txt")).unwrap();
   let config = fixture.config(
     r#"
 [dotfiles]
@@ -391,11 +324,7 @@ fn probe_reports_wrong_symlink_target() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
 
   assert!(!output.status.success());
   assert!(stdout(&output).contains("WRONG-TARGET"));
@@ -414,11 +343,7 @@ fn validate_rejects_duplicate_destinations() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "validate".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
 
   assert!(!output.status.success());
   assert!(stderr(&output).contains("same destination"));
@@ -434,11 +359,7 @@ fn validate_rejects_source_equal_to_destination() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "validate".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
 
   assert!(!output.status.success());
   assert!(stderr(&output).contains("same path"));
@@ -455,11 +376,7 @@ fn warn_only_probe_suppresses_ok_entries() {
 "#,
   );
 
-  let link = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let link = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(link.status.success(), "stderr: {}", stderr(&link));
 
   let probe = fixture.run_paths(&[
@@ -484,17 +401,10 @@ fn home_expansion_uses_home_environment() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
 
   assert!(output.status.success(), "stderr: {}", stderr(&output));
-  assert_symlink_to(
-    &fixture.home.join(".config/fathrs-test.txt"),
-    &fixture.path("source.txt"),
-  );
+  assert_symlink_to(&fixture.home.join(".config/fathrs-test.txt"), &fixture.path("source.txt"));
 }
 
 #[test]
@@ -509,11 +419,7 @@ fn unlink_removes_only_managed_symlink() {
 "#,
   );
 
-  let link = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let link = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(link.status.success(), "stderr: {}", stderr(&link));
   assert!(fs::symlink_metadata(&destination).is_ok());
 
@@ -526,11 +432,7 @@ fn unlink_removes_only_managed_symlink() {
   assert!(dry.status.success(), "stderr: {}", stderr(&dry));
   assert!(fs::symlink_metadata(&destination).is_ok());
 
-  let unlink = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "unlink".as_ref(),
-  ]);
+  let unlink = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "unlink".as_ref()]);
   assert!(unlink.status.success(), "stderr: {}", stderr(&unlink));
   assert!(fs::symlink_metadata(&destination).is_err());
 }
@@ -548,20 +450,12 @@ copy = true
 "#,
   );
 
-  let link = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let link = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(link.status.success(), "stderr: {}", stderr(&link));
 
   fs::write(&destination, "local change").unwrap();
 
-  let unlink = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "unlink".as_ref(),
-  ]);
+  let unlink = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "unlink".as_ref()]);
   assert!(!unlink.status.success());
   assert_eq!(fs::read_to_string(&destination).unwrap(), "local change");
   assert!(stderr(&unlink).contains("refusing to unlink"));
@@ -633,11 +527,7 @@ fn probe_reports_broken_symlink_as_wrong_target() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
 
   assert!(!output.status.success());
   assert!(stdout(&output).contains("WRONG-TARGET"));
@@ -656,22 +546,14 @@ fn copied_directory_preserves_symlink_entries() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "link".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "link".as_ref()]);
   assert!(output.status.success(), "stderr: {}", stderr(&output));
 
   let copied_link = fixture.path("target/link.txt");
   assert!(fs::symlink_metadata(&copied_link).unwrap().file_type().is_symlink());
   assert_eq!(fs::read_link(copied_link).unwrap(), Path::new("real.txt"));
 
-  let probe = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "probe".as_ref(),
-  ]);
+  let probe = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "probe".as_ref()]);
   assert!(probe.status.success(), "stderr: {}", stderr(&probe));
 }
 
@@ -685,11 +567,7 @@ fn validate_rejects_home_directory_as_destination() {
 "#,
   );
 
-  let output = fixture.run_paths(&[
-    "--config".as_ref(),
-    config.as_os_str(),
-    "validate".as_ref(),
-  ]);
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
 
   assert!(!output.status.success());
   assert!(stderr(&output).contains("dangerous destination"));
@@ -702,10 +580,7 @@ fn relative_base_dir_resolves_from_config_directory() {
   let destination = fixture.path("target.txt");
   let config = fixture.write(
     "config/links.toml",
-    &format!(
-      "[dotfiles]\n\"source.txt\" = \"{}\"\n",
-      destination.display()
-    ),
+    &format!("[dotfiles]\n\"source.txt\" = \"{}\"\n", destination.display()),
   );
 
   let output = fixture.run_paths(&[

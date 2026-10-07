@@ -5,10 +5,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Parser;
-use cli::{expand_home_path, Args};
-use link::{apply_entry, probe_entry, unlink_entry, PlanEntry, ProbeState};
+use cli::{Args, expand_home_path};
+use link::{PlanEntry, ProbeState, apply_entry, probe_entry, unlink_entry};
 use serde::Deserialize;
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
@@ -94,10 +94,7 @@ fn run(args: Args) -> Result<()> {
   let links: LinksToml = toml::from_str(&raw)
     .with_context(|| format!("failed to parse TOML in {}", config_path.display()))?;
 
-  let command = args.command.unwrap_or(cli::Command::Link {
-    force: false,
-    dry_run: false,
-  });
+  let command = args.command.unwrap_or(cli::Command::Link { force: false, dry_run: false });
 
   match command {
     cli::Command::Unlink { dry_run } => {
@@ -222,10 +219,7 @@ fn build_plan(links: &LinksToml, base_dir: &Path, check_sources: bool) -> Result
       }
 
       if !destinations.insert(entry.dst.clone()) {
-        bail!(
-          "multiple entries resolve to the same destination: {}",
-          entry.dst.display()
-        );
+        bail!("multiple entries resolve to the same destination: {}", entry.dst.display());
       }
 
       plan.push(entry);
