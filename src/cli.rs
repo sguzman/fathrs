@@ -9,7 +9,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(
-  name = "dotlink",
+  name = "fathrs",
   version,
   about = "Simple dotfile linker: \
            links.toml -> symlinks"
