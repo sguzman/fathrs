@@ -31,6 +31,13 @@ pub(crate) enum Command {
     dry_run: bool,
   },
 
+  /// Remove managed destinations only when they still match the configured state.
+  Unlink {
+    /// Print the planned removals without modifying the filesystem.
+    #[arg(long)]
+    dry_run: bool,
+  },
+
   /// Validate the configuration without changing the filesystem.
   Validate,
 
