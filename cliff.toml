@@ -39,6 +39,9 @@ footer = """
 trim = true
 
 [git]
+# Strict SemVer governance begins at the v1.4.0 retrofit baseline recorded in
+# docs/VERSIONING.md. Tags <= v1.3.4 are immutable legacy provenance.
+# Normal release generation must use --unreleased from the latest governed tag.
 commit_parsers = [
   # Skip release prep commits (broad + case-insensitive)
   { message = "(?i)^chore\\(release\\):", skip = true },
