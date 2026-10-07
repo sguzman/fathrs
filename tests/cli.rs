@@ -42,15 +42,6 @@ impl Fixture {
     self.write("links.toml", contents)
   }
 
-  fn run(&self, args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_fathrs"))
-      .current_dir(&self.root)
-      .env("HOME", &self.home)
-      .args(args)
-      .output()
-      .unwrap()
-  }
-
   fn run_paths(&self, args: &[&std::ffi::OsStr]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_fathrs"))
       .current_dir(&self.root)
@@ -504,4 +495,74 @@ fn home_expansion_uses_home_environment() {
     &fixture.home.join(".config/fathrs-test.txt"),
     &fixture.path("source.txt"),
   );
+}
+
+#[test]
+fn unlink_removes_only_managed_symlink() {
+  let fixture = Fixture::new("unlink");
+  fixture.write("source.txt", "hello");
+  let destination = fixture.path("target.txt");
+  let config = fixture.config(
+    r#"
+[dotfiles]
+"source.txt" = "target.txt"
+"#,
+  );
+
+  let link = fixture.run_paths(&[
+    "--config".as_ref(),
+    config.as_os_str(),
+    "link".as_ref(),
+  ]);
+  assert!(link.status.success(), "stderr: {}", stderr(&link));
+  assert!(fs::symlink_metadata(&destination).is_ok());
+
+  let dry = fixture.run_paths(&[
+    "--config".as_ref(),
+    config.as_os_str(),
+    "unlink".as_ref(),
+    "--dry-run".as_ref(),
+  ]);
+  assert!(dry.status.success(), "stderr: {}", stderr(&dry));
+  assert!(fs::symlink_metadata(&destination).is_ok());
+
+  let unlink = fixture.run_paths(&[
+    "--config".as_ref(),
+    config.as_os_str(),
+    "unlink".as_ref(),
+  ]);
+  assert!(unlink.status.success(), "stderr: {}", stderr(&unlink));
+  assert!(fs::symlink_metadata(&destination).is_err());
+}
+
+#[test]
+fn unlink_refuses_drifted_copy() {
+  let fixture = Fixture::new("unlink-drift");
+  fixture.write("source.txt", "source");
+  let destination = fixture.path("target.txt");
+  let config = fixture.config(
+    r#"
+[dotfiles]
+copy = true
+"source.txt" = "target.txt"
+"#,
+  );
+
+  let link = fixture.run_paths(&[
+    "--config".as_ref(),
+    config.as_os_str(),
+    "link".as_ref(),
+  ]);
+  assert!(link.status.success(), "stderr: {}", stderr(&link));
+
+  fs::write(&destination, "local change").unwrap();
+
+  let unlink = fixture.run_paths(&[
+    "--config".as_ref(),
+    config.as_os_str(),
+    "unlink".as_ref(),
+  ]);
+  assert!(!unlink.status.success());
+  assert_eq!(fs::read_to_string(&destination).unwrap(), "local change");
+  assert!(stderr(&unlink).contains("refusing to unlink"));
 }
