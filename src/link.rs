@@ -565,12 +565,12 @@ pub(crate) fn copy_any_path(
   use_sudo: bool
 ) -> Result<()> {
   if use_sudo {
-    let mut cmd = Command::new("sudo");
+    let mut cmd = Command::new("doas");
     cmd.arg("cp").arg("-r").arg(src).arg(dst);
     let status = cmd.status()?;
     if !status.success() {
       bail!(
-        "sudo cp -r failed with status: {}",
+        "doas cp -r failed with status: {}",
         status
       );
     }
