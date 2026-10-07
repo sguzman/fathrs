@@ -27,36 +27,40 @@ struct Section {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LinkDetails {
+  target: String,
+  copy: Option<bool>,
+  #[serde(alias = "sudo")]
+  doas: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum LinkValue {
   Simple(String),
-  Detailed {
-    target: String,
-    copy: Option<bool>,
-    #[serde(alias = "sudo")]
-    doas: Option<bool>,
-  },
+  Detailed(LinkDetails),
 }
 
 impl LinkValue {
   fn target(&self) -> &str {
     match self {
       LinkValue::Simple(target) => target,
-      LinkValue::Detailed { target, .. } => target,
+      LinkValue::Detailed(details) => &details.target,
     }
   }
 
   fn copy(&self, section_copy: bool) -> bool {
     match self {
       LinkValue::Simple(_) => section_copy,
-      LinkValue::Detailed { copy, .. } => copy.unwrap_or(section_copy),
+      LinkValue::Detailed(details) => details.copy.unwrap_or(section_copy),
     }
   }
 
   fn doas(&self, section_doas: bool) -> bool {
     match self {
       LinkValue::Simple(_) => section_doas,
-      LinkValue::Detailed { doas, .. } => doas.unwrap_or(section_doas),
+      LinkValue::Detailed(details) => details.doas.unwrap_or(section_doas),
     }
   }
 }
