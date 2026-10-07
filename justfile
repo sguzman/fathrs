@@ -24,7 +24,7 @@ test:
 doc:
   RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
 
-ci: fmt-check check clippy test doc
+ci: check clippy test doc fmt-check
 
 install:
   cargo install --path .
