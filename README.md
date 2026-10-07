@@ -1,304 +1,211 @@
 # fathrs
 
-`fathrs` is a small Rust CLI for deploying dotfiles and similar filesystem
-artifacts from a declarative `links.toml` file. It reads source-to-target
-mappings, resolves them relative to a configurable base directory, and then
-creates symlinks or copies files/directories into place.
+`fathrs` is a small Rust CLI for deploying dotfiles and other filesystem
+configuration from a declarative `links.toml`.
 
-The project is intentionally narrow in scope: it is a linker, not a full
-dotfile management framework. There is no templating layer, no profile engine,
-and no repository mutation logic beyond making the requested links or copies.
+It does two things:
 
-## What It Does
+- create symlinks;
+- copy files or directory trees when an actual copy is required.
 
-- Reads link definitions from a TOML config.
-- Creates symlinks for files or directories.
-- Supports replacing existing destinations with `--force`.
-- Supports dry runs before touching the filesystem.
-- Can probe configured destinations and report their current state.
-- Can mark entries or sections as `copy = true` instead of linking.
-- Can mark entries or sections as `sudo = true`, which uses `doas` for
-  privileged filesystem operations.
+That is intentionally the whole scope. Fathrs is not a templating engine, secret
+manager, package manager, profile framework, or repository manager.
 
-## Current Behavior
+## Status
 
-The binary is named `fathrs`. The CLI exposes three modes:
+Fathrs is being hardened for real daily use on Linux. The current execution
+model validates the complete configuration before changing the filesystem,
+supports dry runs, verifies changes after applying them, and can probe for drift.
 
-- `link`: apply the configuration by creating links or copies.
-- `validate`: parse the config and fail early if it is invalid.
-- `probe`: inspect destinations and report whether they are present, missing,
-  symlinks, copies, or likely to require elevated privileges.
+See [ROADMAP.md](./ROADMAP.md) for remaining hardening and release work.
 
-If no subcommand is provided, the program defaults to `link` mode with
-`force = false` and `dry_run = false`.
+## Install
 
-## Requirements
-
-- A Rust toolchain if you are building from source.
-- A filesystem/environment that supports symlinks.
-- `doas` installed if you want to use `sudo = true` entries.
-- A `links.toml` file describing the desired links.
-
-## Toolchain Notes
-
-- The repo includes a [rust-toolchain.toml](./rust-toolchain.toml) pinned to
-  `nightly` with `clippy`, `rustfmt`, and `rust-src`.
-- The release workflow in
-  [.github/workflows/release.yml](./.github/workflows/release.yml) builds and
-  packages the binary on Ubuntu.
-
-## Build And Run
-
-Build the project:
+From a local checkout:
 
 ```bash
-cargo build
+cargo install --path .
 ```
 
-Show CLI help:
+From GitHub:
 
 ```bash
-cargo run -- --help
+cargo install --git https://github.com/sguzman/fathrs
 ```
 
-Apply links from the default `links.toml` in the current directory:
+The project targets stable Rust and Unix/Linux filesystems.
 
-```bash
-cargo run -- link
-```
+Privileged entries use `doas`. Non-privileged configurations do not require it.
 
-Apply links from a specific config using the config directory as the default
-base directory:
+## Quick start
 
-```bash
-cargo run -- --config ~/dotfiles/links.toml link
-```
-
-Preview changes without writing anything:
-
-```bash
-cargo run -- --config ~/dotfiles/links.toml link --dry-run
-```
-
-Replace existing targets when needed:
-
-```bash
-cargo run -- --config ~/dotfiles/links.toml link --force
-```
-
-Validate the config:
-
-```bash
-cargo run -- --config ~/dotfiles/links.toml validate
-```
-
-Probe current link state:
-
-```bash
-cargo run -- --config ~/dotfiles/links.toml probe
-```
-
-## Configuration Format
-
-`fathrs` expects a TOML document where each top-level table is a section. Each
-section contains source-path keys mapped to target-path values, plus optional
-section defaults.
-
-At the section level, these flags are supported:
-
-- `copy = true|false`
-- `sudo = true|false`
-
-Each mapping can be either:
-
-- A string target path.
-- An object with `target` plus optional per-entry `copy` and `sudo` overrides.
-
-### Minimal Example
+Create `links.toml` next to the files you want to manage:
 
 ```toml
 [dotfiles]
-".zshrc" = "~/.zshrc"
-".gitconfig" = "~/.gitconfig"
+"fish" = "~/.config/fish"
+"nvim" = "~/.config/nvim"
+"hypr" = "~/.config/hypr"
 ```
 
-### Mixed Example
+Validate it:
+
+```bash
+fathrs --config ./links.toml validate
+```
+
+Preview the deployment:
+
+```bash
+fathrs --config ./links.toml link --dry-run
+```
+
+Apply it:
+
+```bash
+fathrs --config ./links.toml link
+```
+
+If a destination already exists and conflicts with the desired state, Fathrs
+refuses to replace it unless `--force` is supplied:
+
+```bash
+fathrs --config ./links.toml link --force
+```
+
+Check whether the machine still matches the configuration:
+
+```bash
+fathrs --config ./links.toml probe
+```
+
+`probe` exits non-zero when it finds drift.
+
+## Configuration
+
+Every top-level table is a section. Entries map a source path to a destination.
+
+Simple symlink entries:
 
 ```toml
 [user]
-"config/nvim" = "~/.config/nvim"
-"bin/tool" = { target = "~/.local/bin/tool", copy = true }
-
-[system]
-sudo = true
-"/repo/services/example.service" = "/etc/systemd/system/example.service"
+".gitconfig" = "~/.gitconfig"
+"kitty" = "~/.config/kitty"
 ```
 
-### Path Resolution Rules
+Section defaults can select copy mode or privilege escalation:
+
+```toml
+[system]
+doas = true
+"system/example.service" = "/etc/systemd/system/example.service"
+
+[copies]
+copy = true
+"generated/tool.conf" = "~/.config/tool/tool.conf"
+```
+
+An individual entry can override section defaults:
+
+```toml
+[mixed]
+copy = true
+"snapshot.conf" = "~/.config/example/snapshot.conf"
+"live-dir" = { target = "~/.config/example/live-dir", copy = false }
+"system.conf" = { target = "/etc/example.conf", copy = true, doas = true }
+```
+
+The legacy key `sudo = true` is accepted as an alias for `doas = true` so old
+configs continue to parse. New configs should use `doas`.
+
+### Path resolution
 
 - `--config` defaults to `links.toml`.
-- `~` and `~/...` are expanded using `$HOME`.
-- Relative paths are resolved against `--base-dir` if provided.
-- If `--base-dir` is not provided, relative paths are resolved against the
-  directory containing the config file.
-- Both source and destination paths go through this same resolution logic.
+- `~` and `~/...` expand using `$HOME`.
+- Absolute paths are used as written.
+- Relative source and destination paths resolve under `--base-dir`.
+- Without `--base-dir`, relative paths resolve under the directory containing
+  `links.toml`.
 
-This means a config can be kept inside a dotfiles repository and still use
-short relative paths cleanly.
+This makes a dotfiles repository self-contained by default.
 
-## CLI Reference
-
-### Global Options
-
-- `--config <PATH>`: path to the TOML config file. Default: `links.toml`.
-- `--base-dir <PATH>`: base directory used to resolve relative paths in the
-  config. Defaults to the directory containing the config file.
+## Commands
 
 ### `link`
 
-Creates symlinks or copies according to the config.
+Applies the validated plan.
 
-- `--force`: remove conflicting existing destinations first.
-- `--dry-run`: report actions without changing the filesystem.
+- `--dry-run`: show the same planned operations without changing the
+  filesystem.
+- `--force`: replace conflicting destinations.
 
-Behavior notes:
-
-- If a destination already exists and is the correct symlink, `fathrs` skips it.
-- If a destination exists and points elsewhere, `--force` is required.
-- Parent directories for destinations are created automatically.
-- `copy = true` copies files/directories instead of making symlinks.
-- `sudo = true` uses `doas` for directory creation, removal, copy, and link
-  creation.
+Correct symlinks and matching copies are idempotent and skipped.
 
 ### `validate`
 
-Parses the config and exits successfully if it is syntactically valid for the
-current application parser.
-
-The repository also includes a JSON schema at
-[schema/links.schema.json](./schema/links.schema.json) that documents the
-expected shape of `links.toml`.
+Parses the TOML and performs semantic checks without requiring source files to
+exist or changing the filesystem. It rejects empty configurations, duplicate
+destinations, identical/overlapping source and destination paths, and dangerous
+top-level destinations.
 
 ### `probe`
 
-Reports the status of configured destinations without changing them.
+Compares configured destinations with their sources.
 
-- `--warn-only`: suppress non-warning informational output and focus on
-  problems/missing targets.
+It distinguishes:
 
-Probe mode is useful for checking whether links are already present, whether a
-destination is a plain file instead of a symlink, and whether a destination
-path may require elevated privileges.
+- `OK`
+- `MISSING`
+- `WRONG-KIND`
+- `WRONG-TARGET`
+- `DRIFTED` for copy entries whose content differs
 
-## Logging
+Use `--warn-only` to suppress `OK` lines.
 
-The application uses `tracing` and `tracing-subscriber`.
+## Safety model
 
-- By default, it initializes an `EnvFilter` that falls back to
-  `info,dotlink=trace` if `RUST_LOG` is not set.
-- You can increase verbosity in practice with something like:
+Fathrs resolves and validates every entry before the first mutation. A later
+missing source therefore cannot leave earlier entries partially deployed.
 
-```bash
-RUST_LOG=trace cargo run -- --config ~/dotfiles/links.toml probe
-```
+Other safety rules include:
 
-## Testing
+- duplicate resolved destinations are rejected;
+- source and destination cannot resolve to the same path;
+- source and destination cannot contain one another;
+- filesystem root, top-level system directories, and the home directory itself
+  are rejected as direct destinations;
+- conflicting destinations require explicit `--force`;
+- every applied operation is probed again afterward.
 
-Run the test suite with:
+`--force` can remove a conflicting destination, including a directory tree.
+Use `link --dry-run` first when changing a real dotfiles deployment.
 
-```bash
-cargo test
-```
+## Development
 
-The integration test in [tests/examples_test1.rs](./tests/examples_test1.rs)
-executes the compiled binary against the example config under
-[examples/test1](./examples/test1) and verifies that the expected symlinks are
-created.
-
-## Example Layout
-
-The example config at [examples/test1/links.toml](./examples/test1/links.toml)
-demonstrates three mappings:
-
-- A file-to-file symlink.
-- Another file-to-file symlink in a separate section.
-- A directory symlink.
-
-The fixture source files live under `examples/test1/link-source`, and the test
-creates outputs under `examples/test1/link-target`.
-
-## Project Layout
-
-This repository is small, but it has a few distinct layers:
-
-- [src/main.rs](./src/main.rs): program entrypoint, config parsing, command
-  dispatch, section iteration, and high-level execution flow.
-- [src/cli.rs](./src/cli.rs): `clap` definitions for the CLI and `~` home-path
-  expansion helpers.
-- [src/link.rs](./src/link.rs): low-level filesystem behavior for path
-  resolution, status probing, directory creation, copy operations, removal, and
-  symlink creation.
-- [tests/examples_test1.rs](./tests/examples_test1.rs): integration test that
-  validates the example workflow end to end.
-- [examples/test1](./examples/test1): sample config and fixture data used by the
-  test suite.
-- [schema/links.schema.json](./schema/links.schema.json): JSON schema
-  documenting the shape of `links.toml`.
-- [docs/reference](./docs/reference): supporting project documentation,
-  including release policy, tool guidance, and template/reference material kept
-  alongside the crate.
-- [justfile](./justfile): common development tasks such as build, test, lint,
-  coverage, release helpers, and CI-style local checks.
-- [.github/workflows/release.yml](./.github/workflows/release.yml): GitHub
-  Actions release workflow that builds, verifies, and packages the binary.
-- [tmp](./tmp): scratch/example material used for local config experiments.
-
-## Development Workflow
-
-Common commands:
+The local verification contract is:
 
 ```bash
-just build
-just test
-just clippy
-just fmt
 just ci
 ```
 
-The `just ci` target runs the repo's broader local verification workflow,
-including formatting checks, TOML validation, link checking, linting, docs, and
-tests. Some of those tools are optional local dependencies outside Cargo itself
-such as `taplo`, `biome`, `typos`, and `lychee`.
+It runs Cargo check, Clippy with warnings denied, the test suite, rustdoc, and
+the formatting gate.
 
-## Design Constraints
+Useful commands:
 
-The crate currently favors explicit and inspectable behavior over abstraction:
+```bash
+just test
+just clippy
+just fmt
+just build
+just install
+```
 
-- Config is plain TOML.
-- Source and destination resolution is deterministic.
-- Filesystem changes are observable through logs and dry-run mode.
-- Existing destinations are never replaced silently unless `--force` is used.
-- Privileged operations are opt-in per section or per entry.
+CI runs the same `just ci` contract on pushes to `main` and pull requests.
 
-That narrow scope is the point of the tool. If you want a dotfile manager with
-templating, environment overlays, or secret materialization, this repository is
-not trying to be that.
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for execution invariants and
+[docs/RELEASE.md](./docs/RELEASE.md) for release policy.
 
-## Limitations And Caveats
+## License
 
-- The implementation is Unix-oriented. Symlink creation uses Unix APIs, and the
-  `sudo` path relies on `doas`.
-- Filesystem permission checks are best-effort and platform-sensitive.
-- `validate` confirms parser compatibility but does not currently apply every
-  possible semantic filesystem check up front.
-- Copy mode and symlink mode intentionally share the same config structure, so
-  it is on the operator to use the right behavior for each destination.
-
-## Related Docs
-
-- [docs/reference/RELEASE.md](./docs/reference/RELEASE.md): release and SemVer
-  policy.
-- [docs/reference/ai/POST-CHANGES.md](./docs/reference/ai/POST-CHANGES.md):
-  post-change verification checklist.
-- [docs/reference/tools/cliff.md](./docs/reference/tools/cliff.md): changelog
-  and `git-cliff` guidance.
+MIT.
