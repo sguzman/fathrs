@@ -53,6 +53,9 @@ untested filesystem behavior.
   focused README, architecture notes, release policy, and recovery roadmap.
 - Repair project-name and repository-link residue.
 
-> Historical releases before 1.4.0 had inconsistent changelog, tag, and feature
-> bookkeeping. Their commits remain available in Git history; 1.4.0 resumes the
-> authoritative release record from the repaired codebase.
+> **SemVer adoption:** v1.4.0 is the retrofit SemVer baseline. Existing tags
+> v0.1.1 through v1.3.4 are preserved as legacy pre-discipline provenance and
+> are not retroactively certified under the current release doctrine. The
+> v1.4.0 minor classification is justified by backwards-compatible new
+> capability plus fixes; adopting discipline itself does not cause a version
+> bump.
