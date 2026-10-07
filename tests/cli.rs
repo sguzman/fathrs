@@ -594,3 +594,19 @@ fn relative_base_dir_resolves_from_config_directory() {
   assert!(output.status.success(), "stderr: {}", stderr(&output));
   assert_symlink_to(&destination, &fixture.path("config/sources/source.txt"));
 }
+
+#[test]
+fn validate_rejects_unknown_detailed_entry_fields() {
+  let fixture = Fixture::new("unknown-detailed-field");
+  let config = fixture.config(
+    r#"
+[dotfiles]
+"source.txt" = { target = "target.txt", copi = true }
+"#,
+  );
+
+  let output = fixture.run_paths(&["--config".as_ref(), config.as_os_str(), "validate".as_ref()]);
+
+  assert!(!output.status.success());
+  assert!(stderr(&output).contains("unknown field"));
+}
