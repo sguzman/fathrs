@@ -42,4 +42,4 @@ release level: release-baseline-check
 
 release-artifact:
   cargo build --release --locked
-  @version="$(awk -F '\"' '/^version = / { print $2; exit }' Cargo.toml)"; mkdir -p dist; tar -C target/release -cJf "dist/fathrs-v$version-x86_64-linux.tar.xz" fathrs; echo "dist/fathrs-v$version-x86_64-linux.tar.xz"
+  @version="$(grep '^version = ' Cargo.toml | head -n1 | cut -d '"' -f2)"; mkdir -p dist; tar -C target/release -cJf "dist/fathrs-v$version-x86_64-linux.tar.xz" fathrs; echo "dist/fathrs-v$version-x86_64-linux.tar.xz"
