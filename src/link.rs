@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 use std::env;
-use std::ffi::OsString;
+use std::ffi::{CString, OsString};
 use std::fs;
 use std::io::{self, BufReader, Read};
 #[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
+use std::os::unix::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -555,25 +555,12 @@ fn requires_privilege_for_path(path: &Path) -> bool {
     cursor = parent.to_path_buf();
   }
 
-  let Ok(meta) = fs::metadata(&cursor) else {
+  let Ok(path_bytes) = CString::new(cursor.as_os_str().as_bytes()) else {
     return true;
   };
 
-  let mode = meta.mode();
-  let owner_uid = meta.uid();
-  let owner_gid = meta.gid();
-  let current_uid = unsafe { libc::geteuid() } as u32;
-  let current_gid = unsafe { libc::getegid() } as u32;
-
-  let writable = if owner_uid == current_uid {
-    mode & 0o200 != 0
-  } else if owner_gid == current_gid {
-    mode & 0o020 != 0
-  } else {
-    mode & 0o002 != 0
-  };
-
-  !writable
+  let mode = libc::W_OK | libc::X_OK;
+  unsafe { libc::access(path_bytes.as_ptr(), mode) != 0 }
 }
 
 #[cfg(not(unix))]
