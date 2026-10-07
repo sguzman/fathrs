@@ -424,13 +424,9 @@ fn doas_args(operation: DoasOperation<'_>) -> Vec<OsString> {
     DoasOperation::RemoveDir(path) => {
       vec!["rm".into(), "-rf".into(), "--".into(), path.into()]
     }
-    DoasOperation::Symlink { target, link } => vec![
-      "ln".into(),
-      "-s".into(),
-      "--".into(),
-      target.into(),
-      link.into(),
-    ],
+    DoasOperation::Symlink { target, link } => {
+      vec!["ln".into(), "-s".into(), "--".into(), target.into(), link.into()]
+    }
     DoasOperation::Copy { src, dst } => {
       vec!["cp".into(), "-a".into(), "--".into(), src.into(), dst.into()]
     }
@@ -490,10 +486,7 @@ fn remove_any_path(path: &Path, use_doas: bool) -> Result<()> {
 
 fn create_symlink(target: &Path, link_path: &Path, use_doas: bool) -> Result<()> {
   if use_doas {
-    run_doas(DoasOperation::Symlink {
-      target,
-      link: link_path,
-    })?;
+    run_doas(DoasOperation::Symlink { target, link: link_path })?;
     return Ok(());
   }
 
@@ -590,7 +583,7 @@ fn requires_privilege_for_path(_path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use super::{doas_args, normalize_path, DoasOperation};
+  use super::{DoasOperation, doas_args, normalize_path};
   use std::ffi::OsString;
   use std::path::Path;
 
@@ -617,10 +610,7 @@ mod tests {
   #[test]
   fn privileged_copy_command_is_doas_cp_archive() {
     assert_eq!(
-      doas_args(DoasOperation::Copy {
-        src: Path::new("/src"),
-        dst: Path::new("/dst"),
-      }),
+      doas_args(DoasOperation::Copy { src: Path::new("/src"), dst: Path::new("/dst") }),
       vec![
         OsString::from("cp"),
         OsString::from("-a"),
