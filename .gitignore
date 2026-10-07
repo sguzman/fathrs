@@ -2,3 +2,4 @@
 rust-template
 .lycheecache
 tmp
+/dist
