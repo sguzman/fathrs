@@ -113,6 +113,7 @@ fn links_toml_example_test1_creates_expected_symlinks()
     .arg(&links)
     .arg("--base-dir")
     .arg(&ex)
+    .arg("link")
     .arg("--force")
     .output()
     .expect("failed to run fathrs");
