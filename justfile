@@ -34,14 +34,7 @@ semver-baseline:
   @test (git branch --show-current) = main; or begin; echo "SemVer baseline must be created from main."; exit 1; end
   @git diff --quiet; and git diff --cached --quiet; or begin; echo "Working tree must be clean."; exit 1; end
   just ci
-  @if git rev-parse -q --verify refs/tags/v1.4.0 >/dev/null
-      set tagged (git rev-parse 'v1.4.0^{}')
-      set head (git rev-parse HEAD)
-      test "$tagged" = "$head"; or begin; echo "v1.4.0 already exists at a different commit."; exit 1; end
-      echo "v1.4.0 already exists at this commit; pushing existing baseline."
-    else
-      git tag -a v1.4.0 -m "fathrs 1.4.0 - SemVer adoption baseline"
-    end
+  @if git rev-parse -q --verify refs/tags/v1.4.0 >/dev/null; set tagged (git rev-parse 'v1.4.0^{}'); set head (git rev-parse HEAD); test "$tagged" = "$head"; or begin; echo "v1.4.0 already exists at a different commit."; exit 1; end; echo "v1.4.0 already exists at this commit; pushing existing baseline."; else; git tag -a v1.4.0 -m "fathrs 1.4.0 - SemVer adoption baseline"; end
   git push origin main
   git push origin v1.4.0
 
