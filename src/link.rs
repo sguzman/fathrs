@@ -156,11 +156,11 @@ pub(crate) fn apply_entry(entry: &PlanEntry, force: bool, dry_run: bool) -> Resu
       .with_context(|| format!("failed to remove {}", entry.dst.display()))?;
   }
 
-  if let Some(parent) = entry.dst.parent() {
-    if !parent.as_os_str().is_empty() {
-      ensure_dir_all(parent, entry.use_doas)
-        .with_context(|| format!("failed to create parent directory {}", parent.display()))?;
-    }
+  if let Some(parent) = entry.dst.parent()
+    && !parent.as_os_str().is_empty()
+  {
+    ensure_dir_all(parent, entry.use_doas)
+      .with_context(|| format!("failed to create parent directory {}", parent.display()))?;
   }
 
   if entry.use_copy {
@@ -250,10 +250,10 @@ fn dangerous_destination(path: &Path) -> bool {
     return true;
   }
 
-  if let Some(home) = env::var_os("HOME").map(PathBuf::from) {
-    if normalize_path(path) == normalize_path(&home) {
-      return true;
-    }
+  if let Some(home) = env::var_os("HOME").map(PathBuf::from)
+    && normalize_path(path) == normalize_path(&home)
+  {
+    return true;
   }
 
   false
