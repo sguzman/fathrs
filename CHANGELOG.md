@@ -44,7 +44,7 @@ untested filesystem behavior.
 - Standardize development and CI on stable Rust.
 - Add push/pull-request CI for check, strict Clippy, tests, rustdoc, install
   smoke testing, and rustfmt.
-- Modernize the GitHub release workflow and release artifact packaging.
+- Formalize local cargo-release/git-cliff release tooling and local artifact packaging.
 - Add a realistic EndeavourOS/Hyprland-style dotfiles example.
 
 ### Documentation
