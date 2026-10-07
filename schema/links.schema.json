@@ -1,41 +1,73 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fathrs links.toml schema",
-  "description": "Each section maps a source path to a target path, allowing fathrs to create symlinks.",
+  "title": "Fathrs links.toml",
+  "description": "Declarative source-to-destination mappings for Fathrs.",
   "type": "object",
+  "minProperties": 1,
   "additionalProperties": {
-    "description": "A section that contains the source to target mappings for links.",
-    "type": "object",
-    "properties": {
-      "copy": {
-        "type": "boolean"
+    "$ref": "#/$defs/section"
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "properties": {
+        "copy": {
+          "type": "boolean"
+        },
+        "doas": {
+          "type": "boolean"
+        },
+        "sudo": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "Backward-compatible alias for doas."
+        }
       },
-      "sudo": {
-        "type": "boolean"
+      "not": {
+        "required": [
+          "doas",
+          "sudo"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/link"
       }
     },
-    "additionalProperties": {
+    "link": {
       "oneOf": [
         {
-          "description": "Target path where the symlink should be created.",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         {
+          "type": "object",
+          "additionalProperties": false,
           "properties": {
+            "target": {
+              "type": "string",
+              "minLength": 1
+            },
             "copy": {
               "type": "boolean"
             },
-            "sudo": {
+            "doas": {
               "type": "boolean"
             },
-            "target": {
-              "type": "string"
+            "sudo": {
+              "type": "boolean",
+              "deprecated": true,
+              "description": "Backward-compatible alias for doas."
             }
           },
           "required": [
             "target"
           ],
-          "type": "object"
+          "not": {
+            "required": [
+              "doas",
+              "sudo"
+            ]
+          }
         }
       ]
     }
